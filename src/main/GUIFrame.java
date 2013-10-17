@@ -4,17 +4,15 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
-import java.util.Vector;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.table.*;
 
-import java.awt.Component;
 import java.awt.event.*;
 //跨平台起见，swing丑就丑吧TAT!!
 
-public class GUIController {
+public class GUIFrame {
 
 	private JFrame frame;
 	
@@ -33,11 +31,9 @@ public class GUIController {
 	
 	private JFileChooser jFileChooser;
 	
-	private JTable table;
+	private GUITable table;
 	
-	private int bottomLine;
-	
-	public GUIController()
+	public GUIFrame()
 	{
 		//创建初始界面
 		frame = new JFrame();
@@ -160,77 +156,13 @@ public class GUIController {
 		}
 		
 		//设置好table
-		table = new JTable(new DefaultTableModel(data,head));
-		table.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		table.setRowSelectionAllowed(true); //选择行模式
-		table.setColumnSelectionAllowed(false);
-		table.setDefaultEditor(Object.class, new MyCellEditor()); //改变编辑单元格的模式
-		table.addMouseListener(new MouseAdapter(){
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				if (table.rowAtPoint(e.getPoint())>=0)
-				{
-					table.setColumnSelectionAllowed(false);
-					table.setRowSelectionAllowed(true);
-				}
-			}
-		});
-		
-		//自动增加行
-		addRow();
-		bottomLine=table.getRowCount()-1;
-		
-		//将列设置为点击列表头选择
-		final JTableHeader header = table.getTableHeader();
-		header.setReorderingAllowed(true);
-		header.addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				table.setColumnSelectionAllowed(true);
-				table.setRowSelectionAllowed(false);
-				table.clearSelection();
-				int col = table.columnAtPoint(e.getPoint());
-				table.setColumnSelectionInterval(col, col);
-			}
-		});
-		
-		
+		table = new GUITable(new DefaultTableModel(data,head));
+						
 		//刷新屏幕 - 有木有更好的方法- -？
 		frame.setVisible(false);
 		frame.add(new JScrollPane(table));
 		frame.setVisible(true);
 	}
 	
-	private void addRow()
-	{
-		DefaultTableModel model = (DefaultTableModel) table.getModel();
-		Vector<String> v = new Vector<String>();
-		v.add("");
-		model.addRow(v);
-	}
 	
-	private class MyCellEditor extends DefaultCellEditor
-	{
-		//在选中的时候重新改为选择行……后面可能还会用到吧，感觉和Boolean等等也有关
-		private static final long serialVersionUID = 1L;
-
-		public MyCellEditor() {super(new JTextField());}
-		
-		@Override
-		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
-		{
-			//如果能够在cell里面加一个mouselistener或者还会更好呢！（这样的话还是要加一个）
-			//table.setColumnSelectionAllowed(false);
-			//table.setRowSelectionAllowed(true);
-			
-			//自动加行XD O_o那怎么删除行
-			if (row == bottomLine)
-			{
-				bottomLine++;
-				addRow();
-			}
-			JTextField editor = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
-			return editor;
-		}
-	}
 }

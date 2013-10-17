@@ -21,7 +21,7 @@ public class MainController {
 			//弹窗提示
 			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
-		new GUIController();
+		new GUIFrame();
 		
 		//configuration的保存
 	}
