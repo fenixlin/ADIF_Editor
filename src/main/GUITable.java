@@ -4,7 +4,6 @@ import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
-import java.util.Vector;
 
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
@@ -15,9 +14,12 @@ import javax.swing.table.*;
 public class GUITable extends JTable{
 
 	private static final long serialVersionUID = 1L;
-
-	public GUITable(DefaultTableModel t){
+	private MyTableModel tableModel = null;
+	
+	public GUITable(MyTableModel t){
 		super(t);
+		tableModel = t;
+		
 		setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		setRowSelectionAllowed(true); //选择行模式
 		setColumnSelectionAllowed(false);
@@ -34,7 +36,7 @@ public class GUITable extends JTable{
 		});
 		
 		//自动增加行
-		addRow();
+		tableModel.addRow();
 		bottomLine=getRowCount()-1;
 		
 		//将列设置为点击列表头选择
@@ -51,16 +53,8 @@ public class GUITable extends JTable{
 			}
 		});
 		
-		//设置DropDownList和Boolean
+		//设置DropDownList
 		setDropList();
-	}
-
-	private void addRow()
-	{
-		DefaultTableModel model = (DefaultTableModel) getModel();
-		Vector<String> v = new Vector<String>();
-		v.add("");
-		model.addRow(v);
 	}
 	
 	private int bottomLine = 0;
@@ -75,15 +69,11 @@ public class GUITable extends JTable{
 		@Override
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
 		{
-			//如果能够在cell里面加一个mouselistener或者还会更好呢！（这样的话还是要加一个）
-			//table.setColumnSelectionAllowed(false);
-			//table.setRowSelectionAllowed(true);
-			
 			//自动加行XD O_o那怎么删除行
 			if (row == bottomLine)
 			{
 				bottomLine++;
-				addRow();
+				tableModel.addRow();
 			}
 			JTextField editor = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 			return editor;
@@ -94,15 +84,16 @@ public class GUITable extends JTable{
 	private void setDropList()
 	{
 		TableColumnModel colModel = getColumnModel();
-		DataLoader dl = new DataLoader();
+		StorageLoader sl = new StorageLoader();
 		for (int i = 0; i<getColumnCount(); i++)
 		{
 			TableColumn col = colModel.getColumn(i);
 			String key = (String)col.getHeaderValue();
-			ArrayList<String> values = dl.getEnumList(key);
+			ArrayList<String> values = sl.getEnumList(key);
 			if (values!=null)
 			{
 				JComboBox<String> comboBox = new JComboBox<String>();
+				comboBox.addItem("");//Allow there to be nothing
 				for (String v: values)
 				{
 					comboBox.addItem(v);
@@ -111,5 +102,4 @@ public class GUITable extends JTable{
 			}
 		}
 	}
-	
 }

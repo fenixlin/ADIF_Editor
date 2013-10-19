@@ -5,10 +5,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class DataLoader {
+public class StorageLoader {
 	
 	//默认里面的Key都是Lowercase
-	private static HashMap<String, String> QSOType = new HashMap<String, String>();
+	private static HashMap<String, String> QSOType = new HashMap<String, String>();//All upper-case
 	private static HashMap<String, ArrayList<String>> enumList = new HashMap<String, ArrayList<String>>();//Detailed enumeration this program support
 	
 	private static final String ENUM_FILE = "Enumerations.dat";
@@ -28,7 +28,7 @@ public class DataLoader {
 			while (scanner.hasNext())
 			{
 				int i = scanner.nextInt();
-				String name = scanner.next().toLowerCase();
+				String name = scanner.next().toUpperCase();
 				ArrayList<String> list = new ArrayList<String>();
 				while (i-->0)
 				{
@@ -45,7 +45,7 @@ public class DataLoader {
 			scanner = new Scanner(file);
 			while (scanner.hasNext())
 			{
-				String fieldName = scanner.next().toLowerCase();
+				String fieldName = scanner.next().toUpperCase();
 				String fileType = scanner.next();
 				QSOType.put(fieldName, fileType);
 			}
@@ -63,13 +63,20 @@ public class DataLoader {
 	
 	public ArrayList<String> getEnumList(String key)
 	{
-		if (enumList.containsKey(key.toLowerCase()))
+		if (enumList.containsKey(key.toUpperCase()))
 		{
-			return enumList.get(key.toLowerCase());
+			return enumList.get(key.toUpperCase());
 		}
 		else
 		{
 			return null;
 		}
+	}
+
+	public String getQSOType(String key)
+	{
+		String upperKey = key.toUpperCase();
+		if (QSOType.containsKey(upperKey)) return QSOType.get(upperKey);
+		else return null;
 	}
 }

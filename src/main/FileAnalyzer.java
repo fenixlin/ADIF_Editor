@@ -16,13 +16,16 @@ import org.xml.sax.helpers.DefaultHandler;
 class Records
 {
 	//记录从文件读入的record信息
-	private LinkedHashSet<String> titles = new LinkedHashSet<String>();
-	private ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
+	private LinkedHashSet<String> titles;
+	private HashMap<String,String> types;//values are all upper-case, default type is S
+	private ArrayList<HashMap<String,String>> records;
 	
 	public LinkedHashSet<String> getTitles() {return titles;}
+	public HashMap<String,String> getTypes() {return types;}
 	public ArrayList<HashMap<String,String>> getRecords() {return records;}
 					
-	public void setTitles(LinkedHashSet<String> x) {titles=x;}		
+	public void setTitles(LinkedHashSet<String> x) {titles=x;}
+	public void setTypes(HashMap<String,String> x) {types=x;}
 	public void setRecords(ArrayList<HashMap<String,String>> x) {records=x;}		
 }
 
@@ -64,17 +67,28 @@ public class FileAnalyzer
 			
 			scanner.useDelimiter("[<>\\r\\n]+");
 			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
+			HashMap<String,String> types = new HashMap<String,String>(); 
 			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
 			//use LinkedHashSet to store titles.
 			//use ArrayList to temporarily store data and make it a row when eor is read
 			HashMap<String,String> record = new HashMap<String,String>();
+			
+			int length = -1;
+			String type = null;
+			
 			while (scanner.hasNext())
 			{				
 				String rawTitle = scanner.next();
 				Scanner titleScanner = new Scanner(rawTitle);
 				titleScanner.useDelimiter(":");
 				String title = titleScanner.next();
+				
+				length = -1;
+				if (titleScanner.hasNextInt()) length = titleScanner.nextInt();
+				type = null;
+				if (titleScanner.hasNext()) type = titleScanner.next();
 				titleScanner.close();
+				
 				if (title.equalsIgnoreCase("eor"))
 				{
 					records.add(record);
@@ -86,14 +100,36 @@ public class FileAnalyzer
 					{
 						titleList.add(title);
 					}
+					//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
 					scanner.useDelimiter("[<\\r\\n]+");
 					String value = scanner.next();
-					if (value.startsWith(">")) value = value.substring(1);//In case there are nothing between tags
+					if (value.startsWith(">")) value = value.substring(1);
+					
+					if (!types.containsKey(title))
+					{
+						if (type == null)
+						{
+							StorageLoader sl = new StorageLoader();
+							type = sl.getQSOType(title);
+							if (type == null) types.put(title, "S");
+							else types.put(title, type.toUpperCase());
+						}
+						else
+						{
+							types.put(title, type.toUpperCase());
+						}
+					}
+					/*
+					DataChecker checker = new DataChecker();
+					if (!checker.typeCheck(value, type) || !checker.lengthCheck(value, length)) throw(new Exception());
+					*/
+					
 					record.put(title, value);
 				}
 				scanner.useDelimiter("[<>\\r\\n]+");
 			}
 			r.setTitles(titleList);
+			r.setTypes(types);
 			r.setRecords(records);
 		}
 		catch (Exception e)
