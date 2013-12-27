@@ -15,7 +15,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 class Records
 {
-	//¼ÇÂ¼´ÓÎÄ¼ş¶ÁÈëµÄrecordĞÅÏ¢
+	//è®°å½•ä»æ–‡ä»¶è¯»å…¥çš„recordä¿¡æ¯
 	private LinkedHashSet<String> titles;
 	private HashMap<String,String> types;//values are all upper-case, default type is S
 	private ArrayList<HashMap<String,String>> records;
@@ -34,14 +34,14 @@ public class FileAnalyzer
 	
 	public Records analyze(File file)
 	{
-		//¸ù¾İµ÷ÓÃ¸ñÊ½ÓÃ²»Í¬º¯Êı·ÖÎö
+		//æ ¹æ®è°ƒç”¨æ ¼å¼ç”¨ä¸åŒå‡½æ•°åˆ†æ
 		if (file.getName().endsWith(".adi")) return adiAnalyze(file);
 		else return adxAnalyze(file);
 	}
 	
 	private Records adiAnalyze(File file)
 	{
-		//·ÖÎöadiÎÄ¼ş³Érecord
+		//åˆ†æadiæ–‡ä»¶æˆrecord
 		Scanner scanner = null;
 		Records r = new Records();
 		try
@@ -145,7 +145,7 @@ public class FileAnalyzer
 	
 	private Records adxAnalyze(File file)
 	{
-		//·ÖÎöadxÎÄ¼ş³ÉRecord (ÓÃSAX¶ÁÈëxml) 
+		//åˆ†æadxæ–‡ä»¶æˆRecord (ç”¨SAXè¯»å…¥xml) 
 		Records r = new Records();
 		try
 		{
@@ -166,9 +166,9 @@ public class FileAnalyzer
 		return r;
 	}
 	
-	public class MySaxParser extends DefaultHandler
+	private class MySaxParser extends DefaultHandler
 	{
-		//·ÖÎöxmlÎÄ¼şµÄxml¶ÁÈëÆ÷£¬Ö÷Òª¶¨ÒåÁËÔõÃ´´æÊı¾İ
+		//åˆ†æxmlæ–‡ä»¶çš„xmlè¯»å…¥å™¨ï¼Œä¸»è¦å®šä¹‰äº†æ€ä¹ˆå­˜æ•°æ®
 		private LinkedHashSet<String> titleList = new LinkedHashSet<String>();
 		private ArrayList<HashMap<String, String>> recordList = new ArrayList<HashMap<String,String>>();
 		private HashMap<String, String> hashMap;

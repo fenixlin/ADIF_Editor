@@ -1,10 +1,12 @@
 package main;
 
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
 
+import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
 import javax.swing.JTable;
@@ -14,16 +16,22 @@ import javax.swing.table.*;
 public class GUITable extends JTable{
 
 	private static final long serialVersionUID = 1L;
-	private MyTableModel tableModel = null;
+	private MyTableModel tableModel = null;	
+	private int bottomLine = 0;
 	
 	public GUITable(MyTableModel t){
 		super(t);
 		tableModel = t;
 		
-		setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
-		setRowSelectionAllowed(true); //Ñ¡ÔñĞĞÄ£Ê½
-		setColumnSelectionAllowed(false);
-		setDefaultEditor(Object.class, new MyCellEditor()); //¸Ä±ä±à¼­µ¥Ôª¸ñµÄÄ£Ê½
+		this.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
+		this.setCellSelectionEnabled(true);
+		this.setRowSelectionAllowed(true); //é€‰æ‹©è¡Œæ¨¡å¼
+		this.setColumnSelectionAllowed(false);
+		this.setDefaultEditor(Object.class, new MyCellEditor()); //æ”¹å˜ç¼–è¾‘å•å…ƒæ ¼çš„æ¨¡å¼
+		CustomTableCellRenderer renderer = new CustomTableCellRenderer();
+		this.setDefaultRenderer(Object.class, renderer);
+		this.changeSelection(0, 0, false, false);
+		
 		addMouseListener(new MouseAdapter(){
 			@Override
 			public void mouseClicked(MouseEvent e) {
@@ -35,11 +43,11 @@ public class GUITable extends JTable{
 			}
 		});
 		
-		//×Ô¶¯Ôö¼ÓĞĞ
+		//è‡ªåŠ¨å¢åŠ è¡Œ
 		tableModel.addRow();
 		bottomLine=getRowCount()-1;
 		
-		//½«ÁĞÉèÖÃÎªµã»÷ÁĞ±íÍ·Ñ¡Ôñ
+		//å°†åˆ—è®¾ç½®ä¸ºç‚¹å‡»åˆ—è¡¨å¤´é€‰æ‹©
 		final JTableHeader header = getTableHeader();
 		header.setReorderingAllowed(true);
 		header.addMouseListener(new MouseAdapter() {
@@ -53,15 +61,18 @@ public class GUITable extends JTable{
 			}
 		});
 		
-		//ÉèÖÃDropDownList
+		//è®¾ç½®DropDownList
 		setDropList();
 	}
 	
-	private int bottomLine = 0;
+	public void importData(Records r)
+	{
+		
+	}
 	
 	private class MyCellEditor extends DefaultCellEditor
 	{
-		//ÔÚÑ¡ÖĞµÄÊ±ºòÖØĞÂ¸ÄÎªÑ¡ÔñĞĞ¡­¡­ºóÃæ¿ÉÄÜ»¹»áÓÃµ½°É£¬¸Ğ¾õºÍBooleanµÈµÈÒ²ÓĞ¹Ø
+		//åœ¨é€‰ä¸­çš„æ—¶å€™é‡æ–°æ”¹ä¸ºé€‰æ‹©è¡Œâ€¦â€¦åé¢å¯èƒ½è¿˜ä¼šç”¨åˆ°å§ï¼Œæ„Ÿè§‰å’ŒBooleanç­‰ç­‰ä¹Ÿæœ‰å…³
 		private static final long serialVersionUID = 1L;
 
 		public MyCellEditor() {super(new JTextField());}
@@ -69,7 +80,7 @@ public class GUITable extends JTable{
 		@Override
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
 		{
-			//×Ô¶¯¼ÓĞĞXD O_oÄÇÔõÃ´É¾³ıĞĞ
+			//è‡ªåŠ¨åŠ è¡ŒXD O_oé‚£æ€ä¹ˆåˆ é™¤è¡Œ
 			if (row == bottomLine)
 			{
 				bottomLine++;
@@ -80,6 +91,66 @@ public class GUITable extends JTable{
 		}
 	}
 
+	public boolean search(String value)
+	{		
+		for (int row = 0; row <= this.getRowCount() - 1; row++) {			 
+            for (int col = 0; col <= this.getColumnCount() - 1; col++) {
+            	String temp = this.getValueAt(row, col).toString();
+                if (temp.contains(value)) {
+                	this.scrollRectToVisible(this.getCellRect(row, 0, true));
+                	this.setRowSelectionInterval(row, row);
+                	this.changeSelection(row, col, false, false);
+                	//this.getColumnModel().getColumn(col).setCellRenderer(new HighlightRenderer());
+                	return true;
+                }
+            }
+		}
+		return false;
+	}
+	
+	private class CustomTableCellRenderer extends DefaultTableCellRenderer
+	{
+		private static final long serialVersionUID = 1L;	
+	    
+		@Override
+		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+
+			if (hasFocus)//(table.isCellSelected(row, column))
+			    setBorder(BorderFactory.createMatteBorder(2, 1, 2, 1, Color.BLACK));
+			else setBorder(BorderFactory.createEmptyBorder());
+			/*
+			else if (table.isRowSelected(row))
+			    c.setBackground(Color.pink);
+			else if (!table.isColumnSelected(column)) // seems the table will be refreshed
+			    c.setBackground(Color.white);
+			*/
+			return c;   
+		}	    
+	}
+	
+	/*
+	 * æœ‰ç©ºå¯ä»¥æŠŠé€‰ä¸­çš„æ ¼å­çš„æ˜¾ç¤ºæ–¹æ³•å¼ºè°ƒä¸€ä¸‹å¦‚ä¸‹
+	 * 
+	private class HighlightRenderer extends DefaultTableCellRenderer {
+		 
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+ 
+            // everything as usual
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+ 
+            // added behavior
+            if(row == table.getSelectedRow()) {
+ 
+                // this will customize that kind of border that will be use to highlight a row
+                setBorder(BorderFactory.createMatteBorder(2, 1, 2, 1, Color.BLACK));
+            }
+ 
+            return this;
+        }
+    }
+    */
 	
 	private void setDropList()
 	{

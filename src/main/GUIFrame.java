@@ -5,8 +5,12 @@ import java.io.File;
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
 
+import net.coderazzi.filters.gui.*;
+import net.coderazzi.filters.gui.TableFilterHeader.*;
+
+import java.awt.Color;
 import java.awt.event.*;
-//¿çÆ½Ì¨Æğ¼û£¬swing³ó¾Í³ó°ÉTAT!!
+//è·¨å¹³å°èµ·è§ï¼Œswingä¸‘å°±ä¸‘å§TAT!!
 
 public class GUIFrame {
 
@@ -15,11 +19,13 @@ public class GUIFrame {
 	private JMenuBar menuBar;
 	
 	private JMenu fileMenu;
-	private JMenuItem openMenuItem;
+	private JMenuItem newMenuItem;
 	private JMenuItem importMenuItem;
 	private JMenu exportMenu;
 	private JMenuItem exportAdxMenuItem;
 	private JMenuItem exportAdiMenuItem;
+	private JMenuItem exportAdi2MenuItem;
+	private JMenuItem exportXlsxMenuItem;
 	private JMenuItem exitMenuItem;
 	
 	private JMenu editMenu;
@@ -36,30 +42,66 @@ public class GUIFrame {
 	
 	private JFileChooser jFileChooser;
 	
-	private GUITable table;
+	private GUITable table = null;
+	
+	private TableFilterHeader filterHeader = null;
 	
 	public GUIFrame()
 	{
-		//´´½¨³õÊ¼½çÃæ
+		//åˆ›å»ºåˆå§‹ç•Œé¢
 		frame = new JFrame();
 		frame.setSize(800,600);
+		frame.setTitle("ADIF Editor v1.0 by lazyowl");
+		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		menuBar = new JMenuBar();
 		frame.setJMenuBar(menuBar);
 		
 		fileMenu = new JMenu("File");
-		openMenuItem = new JMenuItem("Open");
-		importMenuItem = new JMenuItem("Import");
+		newMenuItem = new JMenuItem("New");
+		importMenuItem = new JMenuItem("Import / Merge");
 		exportMenu = new JMenu("Export");
 		exportAdxMenuItem = new JMenuItem("Export *.adx in ADIF v 3.0.4");
 		exportAdiMenuItem = new JMenuItem("Export *.adi in ADIF v 3.0.4");
+		exportAdi2MenuItem = new JMenuItem("Export *.adi in ADIF v 2.2.7");
+		exportXlsxMenuItem = new JMenuItem("Export *.xlsx");
 		exitMenuItem = new JMenuItem("Exit");
 		
 		editMenu = new JMenu("Edit");
 		addColumnMenuItem = new JMenuItem("Add column");
 		removeColumnMenuItem = new JMenuItem("Remove column");
 		searchMenuItem = new JMenuItem("Search");
-		filterMenuItem = new JMenuItem("Set filter");
+		searchMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
+		searchMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				String target = JOptionPane.showInputDialog(table, "è¯·è¾“å…¥è¦æœç´¢çš„å€¼", "æœç´¢", JOptionPane.PLAIN_MESSAGE);
+				if (target!=null)
+				{
+					boolean ok = table.search(target);
+					if (!ok) JOptionPane.showMessageDialog(table, "æ²¡æœ‰æ‰¾åˆ°ç›¸åº”çš„å€¼");					
+				}
+			}
+		});
+		filterMenuItem = new JMenuItem("Show / Hide filter");
+		filterMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				if (filterHeader!=null && filterHeader.isVisible())
+				{
+					filterHeader.setVisible(false);
+				}
+				else
+				{
+					filterHeader = new TableFilterHeader(table, AutoChoices.ENABLED);
+					filterHeader.setPosition(Position.TOP);
+					filterHeader.setBackground(Color.darkGray);
+					filterHeader.setForeground(Color.white);
+					filterHeader.setVisible(true);
+				}
+			}
+		});
+		
 		
 		viewMenu = new JMenu("View");
 		headerMenuItem = new JMenuItem("View Header");
@@ -67,14 +109,14 @@ public class GUIFrame {
 		helpMenu = new JMenu("Help");
 		aboutMenuItem = new JMenuItem("About");		
 		
-		openMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_O, ActionEvent.CTRL_MASK));
+		newMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
 		importMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
 		exitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
 		
-		openMenuItem.addActionListener(new ActionListener(){
+		importMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				openFile();
+				importFile();
 			}
 		});
 		
@@ -90,10 +132,12 @@ public class GUIFrame {
 		menuBar.add(viewMenu);
 		menuBar.add(helpMenu);
 		
-		fileMenu.add(openMenuItem);
+		fileMenu.add(newMenuItem);
 		fileMenu.add(importMenuItem);
+		exportMenu.add(exportAdi2MenuItem);
 		exportMenu.add(exportAdiMenuItem);
 		exportMenu.add(exportAdxMenuItem);
+		exportMenu.add(exportXlsxMenuItem);
 		fileMenu.add(exportMenu);
 		fileMenu.addSeparator();
 		fileMenu.add(exitMenuItem);
@@ -109,30 +153,28 @@ public class GUIFrame {
 		helpMenu.add(aboutMenuItem);
 		
 		//Do something for preview
-		
 		frame.setVisible(true);
 	}
 	
 	private class OpenFileFilter extends FileFilter
 	{
-		//°ïÖúopen fileºÍmerge fileÀ´¹ıÂË³öºÏ·¨¸ñÊ½µÄÎÄ¼ş
+		//å¸®åŠ©open fileå’Œmerge fileæ¥è¿‡æ»¤å‡ºåˆæ³•æ ¼å¼çš„æ–‡ä»¶
 		@Override
 		public boolean accept(File f) {
 			if (f.isDirectory()) return true;
-			else if (f.getName().endsWith(".adi") || f.getName().endsWith(".adx")) return true;
+			else if (f.getName().endsWith(".adi") || f.getName().endsWith(".adx") || f.getName().endsWith(".xls") || f.getName().endsWith(".xlsx")) return true;
 			else return false;
 		}
 
 		@Override
 		public String getDescription() {
-			return "*ËùÓĞADIFÎÄ¼ş(*.adi;*.adx)";
+			return "Any ADIF file(*.adi;*.adx) or Excel file(*.xls;*.xlsx)";
 		}
-		
 	}
 	
-	private void openFile()
-	{
-		//open fileµÄ²Ëµ¥Ïî
+	private void importFile()
+	{		
+		//open fileçš„èœå•é¡¹
 		jFileChooser = new JFileChooser(new File("."));
 		OpenFileFilter fileFilter = new OpenFileFilter();
 		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
@@ -143,13 +185,20 @@ public class GUIFrame {
 			FileAnalyzer fa = new FileAnalyzer();
 			Records r = fa.analyze(jFileChooser.getSelectedFile());
 			
-			//ÉèÖÃºÃtable
-			table = new GUITable(new MyTableModel(r));						
-			frame.add(new JScrollPane(table));
+			//è®¾ç½®å¥½table
+			if (table!=null)
+			{
+				
+			}
+			else
+			{
+				table = new GUITable(new MyTableModel(r));	
+				frame.add(new JScrollPane(table));
+			}			
 			
-			//Ë¢ĞÂÆÁÄ»
+			//åˆ·æ–°å±å¹•
 			frame.revalidate();
+			table.requestFocusInWindow(); //æœ‰äº†focusæœç´¢æ‰èƒ½æ˜¾ç¤º
 		}
 	}
-
 }

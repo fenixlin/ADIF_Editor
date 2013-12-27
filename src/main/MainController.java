@@ -5,26 +5,36 @@ import javax.swing.JOptionPane;
 public class MainController {
 	
 	public static void main(String[] args) {
+		///////æ‰€æœ‰å‡½æ•°æè¿°è¯·éµå¾ªè¿™ä¸ªæ ¼å¼///////
+		
 		// set some configurations before it (i.e. loading enumerations, loading arrange configurations)
 		// Check the link below...filtering, drop down list, checkbox are all on it!
 		// http://docs.oracle.com/javase/tutorial/uiswing/components/table.html#sorting
-		//ÏÂÒ»²½£º¼òµ¥µÄÀàĞÍºÍ³¤¶È¼ì²é£¿
-		//ÏÂÏÂÒ»²½£ºdrop down list ºÍ checkboxµÄ×Ô¶¯Ôö¼ÓĞĞ£¿
-		//ÉÏ´Î¿´µ½ÓĞ¸öÈËºÜ»áÍæÂï£¡ÄÇ¸öÑùÀıÈí¼şµ¼Èë²»ĞĞµ¼³ö»¹ÊÇºÜÔŞµÄÂï£¡
-		//ÄÜ²»ÄÜextendsÒ»ÏÂJTableÈ»ºó°ÑÕû¸öTable¶¼Ğ´µ½ÁíÒ»¸öÎÄ¼ş°¡£¿
+		// ã€å…³é”®ã€‘æŠŠé‡è¦çš„æ€è·¯éƒ½è®°å½•ä¸‹æ¥ã€‚çœŸçš„æ˜¯è¿‡äº†ä¸¤ä¸ªæ˜ŸæœŸå†çœ‹å°±çœ‹ä¸æ‡‚äº†å§æ§½ã€‚
+		//ä¸‹ä¸€æ­¥ï¼šç®€å•çš„ç±»å‹å’Œé•¿åº¦æ£€æŸ¥ï¼Ÿ
+		//ä¸‹ä¸‹ä¸€æ­¥ï¼šdrop down list å’Œ checkboxçš„è‡ªåŠ¨å¢åŠ è¡Œï¼Ÿ
+		//ä¸Šæ¬¡çœ‹åˆ°æœ‰ä¸ªäººå¾ˆä¼šç©å˜›ï¼é‚£ä¸ªæ ·ä¾‹è½¯ä»¶å¯¼å…¥ä¸è¡Œå¯¼å‡ºè¿˜æ˜¯å¾ˆèµçš„å˜›ï¼
+		//èƒ½ä¸èƒ½extendsä¸€ä¸‹JTableç„¶åæŠŠæ•´ä¸ªTableéƒ½å†™åˆ°å¦ä¸€ä¸ªæ–‡ä»¶å•Šï¼Ÿ
 		
+		//é—®é¢˜ï¼šé‡æ–°å†å¼€ä¸€ä¸ªæ–‡ä»¶å°±ä¼šå‡ºé—®é¢˜â€¦â€¦
+		//     æœç´¢-ä¸€å¼€å§‹ç›´æ¥æœç´¢ï¼Œä¸èƒ½æ ‡å‡ºæ¡†æ¡†â€¦â€¦
+		
+		//æ¶æ„ï¼š MainController-->GUIFrame-->GUITable
+		//     MainController-->StorageLoader
+		
+
 		try
 		{
 			StorageLoader.loadData();
 		}
 		catch (Exception e)
 		{
-			//µ¯´°ÌáÊ¾
+			//å¼¹çª—æç¤º
 			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
 		}
 		new GUIFrame();
 		
-		//configurationµÄ±£´æ
+		//configurationçš„ä¿å­˜
 	}
 
 }

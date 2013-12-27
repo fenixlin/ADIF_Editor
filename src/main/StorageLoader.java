@@ -7,7 +7,7 @@ import java.util.Scanner;
 
 public class StorageLoader {
 	
-	//Ä¬ÈÏÀïÃæµÄKey¶¼ÊÇLowercase
+	//é»˜è®¤é‡Œé¢çš„Keyéƒ½æ˜¯Lowercase
 	private static HashMap<String, String> QSOType = new HashMap<String, String>();//All upper-case
 	private static HashMap<String, ArrayList<String>> enumList = new HashMap<String, ArrayList<String>>();//Detailed enumeration this program support
 	
@@ -58,7 +58,7 @@ public class StorageLoader {
 		{
 			scanner.close();
 		}
-		//´ÓÎÄ¼ş¶ÁÈ¡Êı¾İ
+		//ä»æ–‡ä»¶è¯»å–æ•°æ®
 	}
 	
 	public ArrayList<String> getEnumList(String key)
