@@ -1,9 +1,11 @@
 package main;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.table.TableModel;
 
 import net.coderazzi.filters.gui.*;
 import net.coderazzi.filters.gui.TableFilterHeader.*;
@@ -20,12 +22,8 @@ public class GUIFrame {
 	
 	private JMenu fileMenu;
 	private JMenuItem newMenuItem;
-	private JMenuItem importMenuItem;
-	private JMenu exportMenu;
-	private JMenuItem exportAdxMenuItem;
-	private JMenuItem exportAdiMenuItem;
-	private JMenuItem exportAdi2MenuItem;
-	private JMenuItem exportXlsxMenuItem;
+	private JMenuItem importMenuItem;	
+	private JMenuItem exportMenuItem;
 	private JMenuItem exitMenuItem;
 	
 	private JMenu editMenu;
@@ -59,13 +57,38 @@ public class GUIFrame {
 		
 		fileMenu = new JMenu("File");
 		newMenuItem = new JMenuItem("New");
-		importMenuItem = new JMenuItem("Import / Merge");
-		exportMenu = new JMenu("Export");
-		exportAdxMenuItem = new JMenuItem("Export *.adx in ADIF v 3.0.4");
-		exportAdiMenuItem = new JMenuItem("Export *.adi in ADIF v 3.0.4");
-		exportAdi2MenuItem = new JMenuItem("Export *.adi in ADIF v 2.2.7");
-		exportXlsxMenuItem = new JMenuItem("Export *.xlsx");
+		importMenuItem = new JMenuItem("Import & Merge");
+		exportMenuItem = new JMenuItem("Export");
 		exitMenuItem = new JMenuItem("Exit");
+		
+		newMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
+		importMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
+		exitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
+		
+		newMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				table.setModel(new MyTableModel());
+			}
+		});		
+		importMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				importFile();
+			}
+		});
+		exportMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				exportFile();
+			}
+		});		
+		exitMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				System.exit(0);
+			}			
+		});
 		
 		editMenu = new JMenu("Edit");
 		addColumnMenuItem = new JMenuItem("Add column");
@@ -109,24 +132,6 @@ public class GUIFrame {
 		helpMenu = new JMenu("Help");
 		aboutMenuItem = new JMenuItem("About");		
 		
-		newMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
-		importMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
-		exitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
-		
-		importMenuItem.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent evt)
-			{
-				importFile();
-			}
-		});
-		
-		exitMenuItem.addActionListener(new ActionListener(){
-			public void actionPerformed(ActionEvent evt)
-			{
-				System.exit(0);
-			}			
-		});
-		
 		menuBar.add(fileMenu);
 		menuBar.add(editMenu);
 		menuBar.add(viewMenu);
@@ -134,11 +139,7 @@ public class GUIFrame {
 		
 		fileMenu.add(newMenuItem);
 		fileMenu.add(importMenuItem);
-		exportMenu.add(exportAdi2MenuItem);
-		exportMenu.add(exportAdiMenuItem);
-		exportMenu.add(exportAdxMenuItem);
-		exportMenu.add(exportXlsxMenuItem);
-		fileMenu.add(exportMenu);
+		fileMenu.add(exportMenuItem);
 		fileMenu.addSeparator();
 		fileMenu.add(exitMenuItem);
 		
@@ -153,12 +154,98 @@ public class GUIFrame {
 		helpMenu.add(aboutMenuItem);
 		
 		//Do something for preview
+		table = new GUITable(new MyTableModel());	
+		frame.add(new JScrollPane(table));
 		frame.setVisible(true);
+	}	
+	
+	private void importFile()
+	{
+		//open file的菜单项
+		jFileChooser = new JFileChooser(new File("."));
+		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
+		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
+		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if (jFileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
+		{
+			FileAnalyzer fa = new FileAnalyzer();
+			Records r = fa.analyze(jFileChooser.getSelectedFile());
+
+			//设置好table
+			table.importData(r);
+			
+			//刷新屏幕
+			frame.revalidate();
+			table.requestFocusInWindow(); //有了focus搜索才能显示
+		}
 	}
 	
-	private class OpenFileFilter extends FileFilter
+	private void exportFile()
 	{
-		//帮助open file和merge file来过滤出合法格式的文件
+		jFileChooser = new JFileChooser(new File("."));
+		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
+		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
+		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+		if (jFileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
+		{			
+			Records r = table.exportData();
+			FileExporter fe = new FileExporter();
+			fe.export(r, jFileChooser.getSelectedFile());
+		}
+	}
+	
+	private class ADIF3FileFilter extends FileFilter
+	{
+		@Override
+		public boolean accept(File f) {
+			if (f.isDirectory()) return true;
+			else if (f.getName().endsWith(".adi") || f.getName().endsWith(".adx")) return true;
+			else return false;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Any ADIF 3.0.4 file(*.adi;*.adx)";
+		}
+	}
+	
+	private class ADIF2FileFilter extends FileFilter
+	{
+		@Override
+		public boolean accept(File f) {
+			if (f.isDirectory()) return true;
+			else if (f.getName().endsWith(".adi")) return true;
+			else return false;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Any ADIF 2.2.7 file(*.adi)";
+		}
+	}
+	
+	private class XlsxFileFilter extends FileFilter
+	{
+		@Override
+		public boolean accept(File f) {
+			if (f.isDirectory()) return true;
+			else if (f.getName().endsWith(".xls") || f.getName().endsWith(".xlsx")) return true;
+			else return false;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Any Excel file(*.xls;*.xlsx)";
+		}
+	}
+	
+	/*
+	private class AllFileFilter extends FileFilter
+	{
 		@Override
 		public boolean accept(File f) {
 			if (f.isDirectory()) return true;
@@ -168,37 +255,8 @@ public class GUIFrame {
 
 		@Override
 		public String getDescription() {
-			return "Any ADIF file(*.adi;*.adx) or Excel file(*.xls;*.xlsx)";
+			return "Any legal file(*.adi;*.adx;*.xls;*.xlsx)";
 		}
 	}
-	
-	private void importFile()
-	{		
-		//open file的菜单项
-		jFileChooser = new JFileChooser(new File("."));
-		OpenFileFilter fileFilter = new OpenFileFilter();
-		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
-		jFileChooser.setFileFilter(fileFilter);
-		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		if (jFileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
-		{
-			FileAnalyzer fa = new FileAnalyzer();
-			Records r = fa.analyze(jFileChooser.getSelectedFile());
-			
-			//设置好table
-			if (table!=null)
-			{
-				
-			}
-			else
-			{
-				table = new GUITable(new MyTableModel(r));	
-				frame.add(new JScrollPane(table));
-			}			
-			
-			//刷新屏幕
-			frame.revalidate();
-			table.requestFocusInWindow(); //有了focus搜索才能显示
-		}
-	}
+	*/
 }

@@ -2,7 +2,9 @@ package main;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
+import java.util.Map.Entry;
 import java.util.Vector;
 
 import javax.swing.table.DefaultTableModel;
@@ -14,18 +16,40 @@ public class MyTableModel extends DefaultTableModel{
 	private LinkedHashSet<String> titles = null;
 	private HashMap<String, String> types = null;
 	private ArrayList<HashMap<String,String>> records = null;
-	private ArrayList<Boolean> isCheckBox = null;
+	private ArrayList<Boolean> isCheckBox = null;	
 	
-	public MyTableModel(Records r)
+	public MyTableModel()
 	{
 		super();
-		titles = r.getTitles();
-		types = r.getTypes();
-		records = r.getRecords();		
-		
+		titles = new LinkedHashSet<String>();
+		types = new HashMap<String,String>();
+		records = new ArrayList<HashMap<String,String>>();
+		isCheckBox = new ArrayList<Boolean>();
+	}
+	
+	public void importData(Records r)
+	{
+		LinkedHashSet<String> newTitles = r.getTitles();
+		HashMap<String, String> newTypes = r.getTypes();
+		ArrayList<HashMap<String,String>> newRecords = r.getRecords();		
+
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
 		Vector<String> head = new Vector<String>();
-		isCheckBox = new ArrayList<Boolean>();
+		
+		for (String s : newTitles)
+		{
+			titles.add(s);
+		}
+		Iterator<Entry<String, String>> iter = newTypes.entrySet().iterator();
+		while (iter.hasNext())
+		{
+			Entry<String, String> entry = iter.next();
+			types.put(entry.getKey(), entry.getValue());
+		}
+		for (HashMap<String,String> record : newRecords)
+		{
+			records.add(record);
+		}
 		
 		for (String s : titles)
 		{
@@ -35,12 +59,12 @@ public class MyTableModel extends DefaultTableModel{
 		}
 		for (int i=0; i<records.size(); i++)
 		{
-			HashMap<String,String> hm = records.get(i);
+			HashMap<String,String> record = records.get(i);
 			Vector<Object> row = new Vector<Object>();
 			int j = 0;
-			for(String s:titles)
+			for(String s: titles)
 			{	
-				String value = hm.get(s);
+				String value = record.get(s);
 				if (isCheckBox.get(j))
 				{
 					if (value!=null && value.equals("Y")) row.add(new Boolean(true));
@@ -56,6 +80,11 @@ public class MyTableModel extends DefaultTableModel{
 		}
 		
 		super.setDataVector(data, head);
+	}
+	
+	public Records exportData()
+	{
+		return new Records(titles, types, records);
 	}
 	
 	@Override

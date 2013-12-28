@@ -1,6 +1,7 @@
 package main;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -13,12 +14,23 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
+import com.aspose.cells.*;
+
 class Records
 {
 	//记录从文件读入的record信息
 	private LinkedHashSet<String> titles;
 	private HashMap<String,String> types;//values are all upper-case, default type is S
 	private ArrayList<HashMap<String,String>> records;
+	
+	public Records() {}
+	
+	public Records(LinkedHashSet<String> x, HashMap<String,String> y, ArrayList<HashMap<String,String>> z)
+	{
+		titles = x;
+		types = y;
+		records = z;
+	}
 	
 	public LinkedHashSet<String> getTitles() {return titles;}
 	public HashMap<String,String> getTypes() {return types;}
@@ -31,13 +43,16 @@ class Records
 
 public class FileAnalyzer 
 {
-	
 	public Records analyze(File file)
 	{
 		//根据调用格式用不同函数分析
 		if (file.getName().endsWith(".adi")) return adiAnalyze(file);
-		else return adxAnalyze(file);
+		else if (file.getName().endsWith(".adx")) return adxAnalyze(file);
+		else if (file.getName().endsWith(".xlsx") || file.getName().endsWith(".xls")) return xlsxAnalyze(file);
+		else return null;
 	}
+	
+	//是不是只有adi才要用config呢？
 	
 	private Records adiAnalyze(File file)
 	{
@@ -99,26 +114,26 @@ public class FileAnalyzer
 					if (!titleList.contains(title))
 					{
 						titleList.add(title);
+						if (!types.containsKey(title))
+						{
+							if (type == null)
+							{
+								ConfigLoader configLoader = new ConfigLoader();
+								type = configLoader.getQSOType(title);
+								if (type == null) types.put(title, "S");
+								else types.put(title, type.toUpperCase());
+							}
+							else
+							{
+								types.put(title, type.toUpperCase());
+							}
+						}
 					}
 					//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
 					scanner.useDelimiter("[<\\r\\n]+");
 					String value = scanner.next();
-					if (value.startsWith(">")) value = value.substring(1);
+					if (value.startsWith(">")) value = value.substring(1);					
 					
-					if (!types.containsKey(title))
-					{
-						if (type == null)
-						{
-							StorageLoader sl = new StorageLoader();
-							type = sl.getQSOType(title);
-							if (type == null) types.put(title, "S");
-							else types.put(title, type.toUpperCase());
-						}
-						else
-						{
-							types.put(title, type.toUpperCase());
-						}
-					}
 					/*
 					DataChecker checker = new DataChecker();
 					if (!checker.typeCheck(value, type) || !checker.lengthCheck(value, length)) throw(new Exception());
@@ -241,5 +256,77 @@ public class FileAnalyzer
 		{
 			if (start==1);
 		}
+	}
+	
+	private Records xlsxAnalyze(File file)
+	{
+		FileInputStream fstream = null;
+		Records r = new Records();
+		try {
+			fstream = new FileInputStream(file);
+			Workbook workbook = new Workbook(fstream);
+			Worksheet worksheet = workbook.getWorksheets().get(0);
+			Cells cells = worksheet.getCells();
+			int maxCol = 0;
+			while (true)
+			{
+				Cell cell = cells.get(0, maxCol);
+				String value = cell.getDisplayStringValue().trim();
+				if (value==null || value.isEmpty()) break;				
+				maxCol++;		
+			}
+			int maxRow = 0;
+			while (true)
+			{
+				Cell cell = cells.get(maxRow, 0);
+				String value = cell.getDisplayStringValue().trim();
+				if (value==null || value.isEmpty()) break;				
+				maxRow++;		
+			}
+			
+			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
+			HashMap<String,String> types = new HashMap<String,String>(); 
+			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
+			
+			for (int i=0;i<maxCol;i++)
+			{
+				Cell cell = cells.get(0, i);
+				String title = cell.getDisplayStringValue();
+				if (!titleList.contains(title))
+				{
+					titleList.add(title);
+					ConfigLoader configLoader = new ConfigLoader();
+					String type = configLoader.getQSOType(title);
+					if (type == null) types.put(title, "S");
+					else types.put(title, type.toUpperCase());
+				}
+			}
+			
+			for (int i=1;i<maxRow;i++)
+			{
+				HashMap<String, String> record = new HashMap<String, String>();
+				for (int j=0;j<maxCol;j++)
+				{
+					Cell cell = cells.get(i, j);
+					Cell titleCell = cells.get(0, j);
+					record.put(titleCell.getDisplayStringValue(), cell.getDisplayStringValue());					
+				}
+				records.add(record);
+			}
+			
+			r.setTitles(titleList);
+			r.setTypes(types);
+			r.setRecords(records);
+		} 
+		catch (Exception e) {}
+		finally
+		{
+			try {
+				fstream.close();
+			} 
+			catch (Exception e) {}
+		}
+		
+		return r;
 	}
 }

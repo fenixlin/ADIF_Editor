@@ -25,7 +25,7 @@ public class MainController {
 
 		try
 		{
-			StorageLoader.loadData();
+			ConfigLoader.loadData();
 		}
 		catch (Exception e)
 		{

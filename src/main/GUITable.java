@@ -13,24 +13,23 @@ import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.*;
 
+import main.ConfigLoader;
+
 public class GUITable extends JTable{
 
 	private static final long serialVersionUID = 1L;
-	private MyTableModel tableModel = null;	
 	private int bottomLine = 0;
 	
 	public GUITable(MyTableModel t){
 		super(t);
-		tableModel = t;
 		
 		this.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		this.setCellSelectionEnabled(true);
 		this.setRowSelectionAllowed(true); //选择行模式
 		this.setColumnSelectionAllowed(false);
 		this.setDefaultEditor(Object.class, new MyCellEditor()); //改变编辑单元格的模式
-		CustomTableCellRenderer renderer = new CustomTableCellRenderer();
-		this.setDefaultRenderer(Object.class, renderer);
-		this.changeSelection(0, 0, false, false);
+		this.setDefaultRenderer(Object.class, new CustomTableCellRenderer());
+		//this.changeSelection(0, 0, false, false);
 		
 		addMouseListener(new MouseAdapter(){
 			@Override
@@ -44,7 +43,7 @@ public class GUITable extends JTable{
 		});
 		
 		//自动增加行
-		tableModel.addRow();
+		//tableModel.addRow();
 		bottomLine=getRowCount()-1;
 		
 		//将列设置为点击列表头选择
@@ -67,7 +66,15 @@ public class GUITable extends JTable{
 	
 	public void importData(Records r)
 	{
-		
+		MyTableModel tableModel = (MyTableModel)this.getModel();
+		tableModel.importData(r);
+		setDropList();
+	}
+	
+	public Records exportData()
+	{
+		MyTableModel tableModel = (MyTableModel)this.getModel();
+		return tableModel.exportData();
 	}
 	
 	private class MyCellEditor extends DefaultCellEditor
@@ -81,6 +88,7 @@ public class GUITable extends JTable{
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
 		{
 			//自动加行XD O_o那怎么删除行
+			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
 			if (row == bottomLine)
 			{
 				bottomLine++;
@@ -155,7 +163,7 @@ public class GUITable extends JTable{
 	private void setDropList()
 	{
 		TableColumnModel colModel = getColumnModel();
-		StorageLoader sl = new StorageLoader();
+		ConfigLoader sl = new ConfigLoader();
 		for (int i = 0; i<getColumnCount(); i++)
 		{
 			TableColumn col = colModel.getColumn(i);

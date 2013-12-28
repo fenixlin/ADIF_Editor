@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Scanner;
 
-public class StorageLoader {
+public class ConfigLoader {
 	
 	//默认里面的Key都是Lowercase
 	private static HashMap<String, String> QSOType = new HashMap<String, String>();//All upper-case
