@@ -36,6 +36,9 @@ public class MyTableModel extends DefaultTableModel{
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
 		Vector<String> head = new Vector<String>();
 		
+		//一定要记得加上下面这行
+		// if (newTitles == null || newRecord == null) return;
+		
 		for (String s : newTitles)
 		{
 			titles.add(s);
@@ -83,7 +86,7 @@ public class MyTableModel extends DefaultTableModel{
 	}
 	
 	public Records exportData()
-	{
+	{		
 		return new Records(titles, types, records);
 	}
 	

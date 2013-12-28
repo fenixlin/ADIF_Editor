@@ -1,7 +1,6 @@
 package main;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -10,11 +9,10 @@ import java.util.Scanner;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
+import org.apache.poi.ss.usermodel.*;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
-
-import com.aspose.cells.*;
 
 class Records
 {
@@ -48,7 +46,7 @@ public class FileAnalyzer
 		//根据调用格式用不同函数分析
 		if (file.getName().endsWith(".adi")) return adiAnalyze(file);
 		else if (file.getName().endsWith(".adx")) return adxAnalyze(file);
-		else if (file.getName().endsWith(".xlsx") || file.getName().endsWith(".xls")) return xlsxAnalyze(file);
+		else if (file.getName().endsWith(".xlsx")) return xlsxAnalyze(file);
 		else return null;
 	}
 	
@@ -57,6 +55,7 @@ public class FileAnalyzer
 	private Records adiAnalyze(File file)
 	{
 		//分析adi文件成record
+		
 		Scanner scanner = null;
 		Records r = new Records();
 		try
@@ -260,38 +259,23 @@ public class FileAnalyzer
 	
 	private Records xlsxAnalyze(File file)
 	{
-		FileInputStream fstream = null;
 		Records r = new Records();
+		Workbook workbook;
 		try {
-			fstream = new FileInputStream(file);
-			Workbook workbook = new Workbook(fstream);
-			Worksheet worksheet = workbook.getWorksheets().get(0);
-			Cells cells = worksheet.getCells();
-			int maxCol = 0;
-			while (true)
-			{
-				Cell cell = cells.get(0, maxCol);
-				String value = cell.getDisplayStringValue().trim();
-				if (value==null || value.isEmpty()) break;				
-				maxCol++;		
-			}
-			int maxRow = 0;
-			while (true)
-			{
-				Cell cell = cells.get(maxRow, 0);
-				String value = cell.getDisplayStringValue().trim();
-				if (value==null || value.isEmpty()) break;				
-				maxRow++;		
-			}
-			
+			workbook = WorkbookFactory.create(file);
+			Sheet sheet = workbook.getSheetAt(0);
+						
 			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
 			HashMap<String,String> types = new HashMap<String,String>(); 
 			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
+
+			Row titleRow = sheet.getRow(0);
+			int lastColumn = titleRow.getLastCellNum();
 			
-			for (int i=0;i<maxCol;i++)
+			for (Cell cell : titleRow)
 			{
-				Cell cell = cells.get(0, i);
-				String title = cell.getDisplayStringValue();
+				cell.setCellType(Cell.CELL_TYPE_STRING);
+				String title = cell.getStringCellValue();
 				if (!titleList.contains(title))
 				{
 					titleList.add(title);
@@ -301,15 +285,20 @@ public class FileAnalyzer
 					else types.put(title, type.toUpperCase());
 				}
 			}
-			
-			for (int i=1;i<maxRow;i++)
+			for (int i=1; i<=sheet.getLastRowNum(); i++)
 			{
+				Row row = sheet.getRow(i);
 				HashMap<String, String> record = new HashMap<String, String>();
-				for (int j=0;j<maxCol;j++)
+				for (int j=0; j<lastColumn; j++)
 				{
-					Cell cell = cells.get(i, j);
-					Cell titleCell = cells.get(0, j);
-					record.put(titleCell.getDisplayStringValue(), cell.getDisplayStringValue());					
+					Cell cell = row.getCell(j, Row.RETURN_BLANK_AS_NULL);
+					
+					if (cell!=null)
+					{
+						cell.setCellType(Cell.CELL_TYPE_STRING);
+						String title = titleRow.getCell(j).getStringCellValue();
+						record.put(title, cell.getStringCellValue());
+					}
 				}
 				records.add(record);
 			}
@@ -317,14 +306,10 @@ public class FileAnalyzer
 			r.setTitles(titleList);
 			r.setTypes(types);
 			r.setRecords(records);
-		} 
-		catch (Exception e) {}
-		finally
+		}
+		catch (Exception e)
 		{
-			try {
-				fstream.close();
-			} 
-			catch (Exception e) {}
+			//还木有处理！
 		}
 		
 		return r;

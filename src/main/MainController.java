@@ -22,6 +22,9 @@ public class MainController {
 		//架构： MainController-->GUIFrame-->GUITable
 		//     MainController-->StorageLoader
 		
+		//user-defined field not done yet!!!
+		//这里说一下，我们显示的表头的东西应该是FIELDNAME
+		//然后user-defined的东西可以在文件头部声明，可选择附带范围或枚举类型(人家只要枚举啦)		
 
 		try
 		{

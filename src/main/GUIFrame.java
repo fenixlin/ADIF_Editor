@@ -63,6 +63,7 @@ public class GUIFrame {
 		
 		newMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
 		importMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
+		exportMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_E, ActionEvent.CTRL_MASK));
 		exitMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_Q, ActionEvent.CTRL_MASK));
 		
 		newMenuItem.addActionListener(new ActionListener(){
@@ -233,13 +234,13 @@ public class GUIFrame {
 		@Override
 		public boolean accept(File f) {
 			if (f.isDirectory()) return true;
-			else if (f.getName().endsWith(".xls") || f.getName().endsWith(".xlsx")) return true;
+			else if (f.getName().endsWith(".xlsx")) return true;
 			else return false;
 		}
 
 		@Override
 		public String getDescription() {
-			return "Any Excel file(*.xls;*.xlsx)";
+			return "Any Excel 2007(or later) file(*.xlsx)";
 		}
 	}
 	

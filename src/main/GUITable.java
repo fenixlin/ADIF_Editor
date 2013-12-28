@@ -2,6 +2,8 @@ package main;
 
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
@@ -9,6 +11,8 @@ import java.util.ArrayList;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
 import javax.swing.JComboBox;
+import javax.swing.JMenuItem;
+import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.JTextField;
 import javax.swing.table.*;
@@ -19,6 +23,7 @@ public class GUITable extends JTable{
 
 	private static final long serialVersionUID = 1L;
 	private int bottomLine = 0;
+	private int popupColumn;
 	
 	public GUITable(MyTableModel t){
 		super(t);
@@ -51,14 +56,39 @@ public class GUITable extends JTable{
 		header.setReorderingAllowed(true);
 		header.addMouseListener(new MouseAdapter() {
 			@Override
-			public void mouseClicked(MouseEvent e) {
+			public void mousePressed(MouseEvent e) {
 				setColumnSelectionAllowed(true);
 				setRowSelectionAllowed(false);
 				clearSelection();
 				int col = columnAtPoint(e.getPoint());
 				setColumnSelectionInterval(col, col);
-			}
+			}			
 		});
+		
+		final JPopupMenu popupMenu = new JPopupMenu();
+		JMenuItem hideItem = new JMenuItem("Hide"); 
+		JMenuItem removeItem = new JMenuItem("Remove");
+		
+		hideItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	GUITable.this.getColumnModel().getColumn(popupColumn).setMinWidth(0);
+            	GUITable.this.getColumnModel().getColumn(popupColumn).setMaxWidth(0);
+            }
+        });
+		popupMenu.add(hideItem);
+		popupMenu.add(removeItem);		
+		//header.setComponentPopupMenu(popupMenu);
+		header.addMouseListener( new MouseAdapter() {			
+			@Override
+		    public void mouseReleased(MouseEvent e) {
+		        if (e.isPopupTrigger())
+		        {
+		            popupColumn = header.columnAtPoint( e.getPoint() );
+		            popupMenu.show(e.getComponent(), e.getX(), e.getY());
+		        }
+		    }
+		});	
 		
 		//设置DropDownList
 		setDropList();
