@@ -14,31 +14,6 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-class Records
-{
-	//记录从文件读入的record信息
-	private LinkedHashSet<String> titles;
-	private HashMap<String,String> types;//values are all upper-case, default type is S
-	private ArrayList<HashMap<String,String>> records;
-	
-	public Records() {}
-	
-	public Records(LinkedHashSet<String> x, HashMap<String,String> y, ArrayList<HashMap<String,String>> z)
-	{
-		titles = x;
-		types = y;
-		records = z;
-	}
-	
-	public LinkedHashSet<String> getTitles() {return titles;}
-	public HashMap<String,String> getTypes() {return types;}
-	public ArrayList<HashMap<String,String>> getRecords() {return records;}
-					
-	public void setTitles(LinkedHashSet<String> x) {titles=x;}
-	public void setTypes(HashMap<String,String> x) {types=x;}
-	public void setRecords(ArrayList<HashMap<String,String>> x) {records=x;}		
-}
-
 public class FileAnalyzer 
 {
 	public Records analyze(File file)
@@ -57,22 +32,74 @@ public class FileAnalyzer
 		//分析adi文件成record
 		
 		Scanner scanner = null;
-		Records r = new Records();
+		Records r = null;
 		try
 		{
 			scanner = new Scanner(file);
 			/*boolean isContent;*/
+			
+			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
+			HashMap<String,String> types = new HashMap<String,String>();
+			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
+			HashMap<String, UDF> udfs = new HashMap<String, UDF>();
+			HashMap<String, String> apps = new HashMap<String, String>();
+			//use LinkedHashSet to store titles.
+			//use ArrayList to temporarily store data and make it a row when eor is read
+			
 			if (!scanner.next().startsWith("<"))
-			{	
+			{
 				//throw the header out
-				String s;
+				String spec;
+				String body;
+				scanner.useDelimiter("<");
+				scanner.next();
 				do
 				{
-					scanner.useDelimiter("[<\\r\\n]+"); //In case there are nothing between tags
-					s = scanner.next();
-					scanner.useDelimiter("[<>\\r\\n]+");
-					s = scanner.next();
-				}while (!s.equalsIgnoreCase("eoh"));
+					scanner.useDelimiter("[<>\\r\\n]+"); //In case there are no content between tags
+					spec = scanner.next();					
+					scanner.useDelimiter("[<\\r\\n]+");
+					body = scanner.next();
+					if (body.startsWith(">")) body=body.substring(1);
+					if (spec.startsWith("USERDEF"))
+					{
+						Scanner titleScanner = new Scanner(spec);
+						titleScanner.useDelimiter(":");
+						String head = titleScanner.next();
+						int fieldID = Integer.parseInt(head.substring(7, head.length()));
+						//length is not used here
+						titleScanner.nextInt();						
+						//Data Types and Data Type Indicators are case insensitive.
+						String type = titleScanner.next().toUpperCase();
+						titleScanner.close();
+						
+						Scanner bodyScanner = new Scanner(body);
+						bodyScanner.useDelimiter("[{},]+");
+						//ADIF Field Names are case-insensitive.
+						String fieldName = bodyScanner.next().toUpperCase();						
+						ArrayList<String> enums = new ArrayList<String>();
+						String range = null;
+						if (bodyScanner.hasNext())
+						{
+							String s = bodyScanner.next();
+							if (s.matches("\\d+:\\d+"))
+							{
+								range = s;								
+							}
+							else
+							{
+								do
+								{
+									enums.add(s);
+									if (bodyScanner.hasNext()) s = bodyScanner.next();
+									else break;									
+								}while (true);								
+							}
+						}
+						bodyScanner.close();
+						
+						udfs.put(fieldName, new UDF(fieldID, type, enums, range));						
+					}
+				}while (!spec.equalsIgnoreCase("eoh"));
 			}
 			else
 			{
@@ -80,36 +107,41 @@ public class FileAnalyzer
 			}
 			
 			scanner.useDelimiter("[<>\\r\\n]+");
-			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
-			HashMap<String,String> types = new HashMap<String,String>(); 
-			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
-			//use LinkedHashSet to store titles.
-			//use ArrayList to temporarily store data and make it a row when eor is read
+			
 			HashMap<String,String> record = new HashMap<String,String>();
 			
 			int length = -1;
 			String type = null;
-			
+
 			while (scanner.hasNext())
 			{				
 				String rawTitle = scanner.next();
 				Scanner titleScanner = new Scanner(rawTitle);
 				titleScanner.useDelimiter(":");
-				String title = titleScanner.next();
+				
+				//ADIF Field Names are case-insensitive.
+				String title = titleScanner.next().toUpperCase();
 				
 				length = -1;
 				if (titleScanner.hasNextInt()) length = titleScanner.nextInt();
 				type = null;
-				if (titleScanner.hasNext()) type = titleScanner.next();
+				//Data Types and Data Type Indicators are case insensitive.
+				if (titleScanner.hasNext()) type = titleScanner.next().toUpperCase();
 				titleScanner.close();
 				
-				if (title.equalsIgnoreCase("eor"))
+				if (title.equals("EOR"))
 				{
 					records.add(record);
 					record = new HashMap<String,String>();
 				}
 				else
 				{
+					if (title.startsWith("APP_"))
+					{
+						String programID = title.substring(4, title.indexOf('_', 4));
+						title = title.substring(title.indexOf('_', 4)+1, title.length());
+						apps.put(title, programID);
+					}
 					if (!titleList.contains(title))
 					{
 						titleList.add(title);
@@ -120,18 +152,21 @@ public class FileAnalyzer
 								ConfigLoader configLoader = new ConfigLoader();
 								type = configLoader.getQSOType(title);
 								if (type == null) types.put(title, "S");
-								else types.put(title, type.toUpperCase());
+								else types.put(title, type);
 							}
 							else
 							{
-								types.put(title, type.toUpperCase());
+								types.put(title, type);
 							}
 						}
 					}
 					//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
 					scanner.useDelimiter("[<\\r\\n]+");
 					String value = scanner.next();
-					if (value.startsWith(">")) value = value.substring(1);					
+					if (value.startsWith(">")) value = value.substring(1);
+										
+					// CUT but not CHECK??????????????????????????????
+					if (length>0) value=value.substring(0, length);
 					
 					/*
 					DataChecker checker = new DataChecker();
@@ -141,14 +176,13 @@ public class FileAnalyzer
 					record.put(title, value);
 				}
 				scanner.useDelimiter("[<>\\r\\n]+");
-			}
-			r.setTitles(titleList);
-			r.setTypes(types);
-			r.setRecords(records);
+			}			
+			r = new Records(titleList, types, records, udfs, apps);
 		}
 		catch (Exception e)
 		{
 			//Is is possible to cause file not found?
+			e.printStackTrace();
 		}
 		finally
 		{
@@ -160,7 +194,7 @@ public class FileAnalyzer
 	private Records adxAnalyze(File file)
 	{
 		//分析adx文件成Record (用SAX读入xml) 
-		Records r = new Records();
+		Records r = null;
 		try
 		{
 			//They have protected constructors. This is the only way to employ SAXParser
@@ -169,8 +203,7 @@ public class FileAnalyzer
 			MySaxParser mySaxParser = new MySaxParser();
 			
 			saxParser.parse(file, mySaxParser);
-			r.setTitles(mySaxParser.getTitleList());
-			r.setRecords(mySaxParser.getRecordList());
+			r = new Records(mySaxParser.getTitles(), mySaxParser.getTypes(), mySaxParser.getRecords(), mySaxParser.getUDFs(), mySaxParser.getAPPs());
 		}
 		catch (Exception e)
 		{
@@ -183,60 +216,102 @@ public class FileAnalyzer
 	private class MySaxParser extends DefaultHandler
 	{
 		//分析xml文件的xml读入器，主要定义了怎么存数据
-		private LinkedHashSet<String> titleList = new LinkedHashSet<String>();
-		private ArrayList<HashMap<String, String>> recordList = new ArrayList<HashMap<String,String>>();
-		private HashMap<String, String> hashMap;
+		private LinkedHashSet<String> titles = new LinkedHashSet<String>();
+		private HashMap<String,String> types = new HashMap<String,String>();
+		private ArrayList<HashMap<String, String>> records = new ArrayList<HashMap<String,String>>();
+		private HashMap<String, UDF> udfs = new HashMap<String, UDF>();
+		private HashMap<String, String> apps = new HashMap<String, String>();
+		
+		private HashMap<String, String> record;
 		private String currentTitle;
+		private UDF currentUDF;
+		private boolean isUDF = false;
 		private boolean isHeader = false;
 		private boolean isRecords = false;
 		private boolean isRecord = false;
 		
 		public MySaxParser() {super();}
 		
-		public LinkedHashSet<String> getTitleList() {return titleList;}
-		public ArrayList<HashMap<String,String>> getRecordList() {return recordList;}
+		public LinkedHashSet<String> getTitles() {return titles;}
+		public HashMap<String,String> getTypes() {return types;}	
+		public ArrayList<HashMap<String,String>> getRecords() {return records;}
+		public HashMap<String, UDF> getUDFs() {return udfs;}
+		public HashMap<String, String> getAPPs() {return apps;}
 		
 		@Override
 		public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException
 		{
 			if (isHeader)
 			{
-				//do something with header
+				if (qName.equals("USERDEF"))
+				{
+					isUDF = true;
+					int fieldID = Integer.parseInt(attributes.getValue("FIELDID"));
+					String type = attributes.getValue("TYPE");
+					String enumlist = attributes.getValue("ENUM");
+					ArrayList<String> enums = new ArrayList<String>();
+					if (enumlist!=null)
+					{
+						Scanner enumScanner = new Scanner(enumlist);
+						enumScanner.useDelimiter("[{},]+");
+						while (enumScanner.hasNext())
+						{
+							enums.add(enumScanner.next());
+						}
+						enumScanner.close();
+					}
+					String range = attributes.getValue("RANGE");
+					if (range!=null) range = range.substring(1, range.length()-1);					
+					currentUDF = new UDF(fieldID, type, enums, range);					
+				}
 			}
-			if (isRecords)
+			else if (isRecords)
 			{
 				if (isRecord)
 				{
 					String title;
 					//XML is case-sensitive
-					if (!qName.equals("USERDEF") && !qName.equals("APP")) title = qName;
-					else title = attributes.getValue("FIELDNAME");//USERDEF and APP must extract their own name.
-					if (!titleList.contains(title))
-					{						
-						titleList.add(title);
+					if (qName.equals("USERDEF") || qName.equals("APP"))
+					{
+						//ADIF Field Names are case-insensitive. USERDEF and APP must extract their own name.
+						title = attributes.getValue("FIELDNAME").toUpperCase();
+						if (qName.equals("APP"))
+						{
+							apps.put(title, attributes.getValue("PROGRAMID"));
+						}
+					}					
+					else title = qName;
+					
+					if (!titles.contains(title))
+					{
+						titles.add(title);
+						String type = attributes.getValue("TYPE");
+						if (type!=null)	types.put(title, type);						
+						else types.put(title, "S");						
 					}
 					currentTitle = title;
 				}
 				if (qName.equals("RECORD"))
 				{
 					isRecord = true;
-					hashMap = new HashMap<String, String>();
+					record = new HashMap<String, String>();
 				}
 			}
-			if (qName.equals("HEADER")) isHeader = true;
-			if (qName.equals("RECORDS")) isRecords = true;
+			else if (qName.equals("HEADER")) isHeader = true;
+			else if (qName.equals("RECORDS")) isRecords = true;
 		}
 		
 		@Override
 		public void endElement(String uri, String localName, String qName) throws SAXException
 		{
 			if (qName.equals("HEADER")) isHeader = false;
-			if (qName.equals("RECORDS")) isRecords = false;
-			if (qName.equals("RECORD"))
+			else if (qName.equals("RECORDS")) isRecords = false;
+			else if (qName.equals("RECORD"))
 			{
 				isRecord = false;
-				recordList.add(hashMap);
+				records.add(record);
 			}
+			else if (qName.equals("USERDEF")) isUDF = false;
 		}
 		
 		@Override
@@ -247,24 +322,26 @@ public class FileAnalyzer
 			{
 				return; // ignore white space
 			}
-			if (isRecord && currentTitle!=null)hashMap.put(currentTitle, s);
-		}
-		
-		@Override
-		public void ignorableWhitespace(char[] ch, int start, int length) throws SAXException
-		{
-			if (start==1);
-		}
+			if (isRecord && currentTitle!=null) record.put(currentTitle, s);
+			else if (isUDF)
+			{
+				udfs.put(s, currentUDF);
+				if (currentUDF.getType()!=null)
+				{
+					types.put(s, currentUDF.getType());
+				}
+			}
+		}		
 	}
 	
 	private Records xlsxAnalyze(File file)
 	{
-		Records r = new Records();
+		Records r = null;
 		Workbook workbook;
 		try {
 			workbook = WorkbookFactory.create(file);
 			Sheet sheet = workbook.getSheetAt(0);
-						
+
 			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
 			HashMap<String,String> types = new HashMap<String,String>(); 
 			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
@@ -280,9 +357,10 @@ public class FileAnalyzer
 				{
 					titleList.add(title);
 					ConfigLoader configLoader = new ConfigLoader();
-					String type = configLoader.getQSOType(title);
+					//Data Types and Data Type Indicators are case insensitive.
+					String type = configLoader.getQSOType(title).toUpperCase();
 					if (type == null) types.put(title, "S");
-					else types.put(title, type.toUpperCase());
+					else types.put(title, type);
 				}
 			}
 			for (int i=1; i<=sheet.getLastRowNum(); i++)
@@ -303,13 +381,12 @@ public class FileAnalyzer
 				records.add(record);
 			}
 			
-			r.setTitles(titleList);
-			r.setTypes(types);
-			r.setRecords(records);
+			r = new Records(titleList, types, records, new HashMap<String, UDF>(), new HashMap<String, String>());			
 		}
 		catch (Exception e)
 		{
 			//还木有处理！
+			e.printStackTrace();
 		}
 		
 		return r;

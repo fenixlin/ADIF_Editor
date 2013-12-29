@@ -24,6 +24,8 @@ public class GUITable extends JTable{
 	private static final long serialVersionUID = 1L;
 	private int bottomLine = 0;
 	private int popupColumn;
+	private ArrayList<Integer> hiddenColumnNumber = new ArrayList<Integer>();
+	private ArrayList<TableColumn> hiddenColumn = new ArrayList<TableColumn>();
 	
 	public GUITable(MyTableModel t){
 		super(t);
@@ -72,8 +74,7 @@ public class GUITable extends JTable{
 		hideItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	GUITable.this.getColumnModel().getColumn(popupColumn).setMinWidth(0);
-            	GUITable.this.getColumnModel().getColumn(popupColumn).setMaxWidth(0);
+            	GUITable.this.hideColumn(popupColumn);
             }
         });
 		popupMenu.add(hideItem);
@@ -94,11 +95,50 @@ public class GUITable extends JTable{
 		setDropList();
 	}
 	
+	public void hideColumn(int col)
+	{
+		hiddenColumnNumber.add(col);
+		TableColumn tc = this.getColumnModel().getColumn(col);
+		hiddenColumn.add(tc);
+		this.removeColumn(tc);
+		//this.getColumnModel().getColumn(col).setMinWidth(0);
+    	//this.getColumnModel().getColumn(col).setMaxWidth(0);
+	}
+	
+	public int displayedColumnNumber(int col)
+	{
+		int answer = col;
+		for (Integer x: hiddenColumnNumber)
+		{
+			if (x<col) answer++;
+		}
+		return answer;
+	}
+
+	public void showAllHiddenColumn(int maxWidth)
+	{
+		for (TableColumn x: hiddenColumn)
+		{			
+			this.addColumn(x);
+		}
+		hiddenColumnNumber.clear();
+		hiddenColumn.clear();
+	}
+	
 	public void importData(Records r)
 	{
+		int displayedColumn = getColumnCount();
+		for (TableColumn x: hiddenColumn)
+		{			
+			this.addColumn(x);
+		}
+		
 		MyTableModel tableModel = (MyTableModel)this.getModel();
 		tableModel.importData(r);
 		setDropList();
+		
+		for (int i=0; i<hiddenColumn.size(); i++)
+			this.removeColumn(this.getColumnModel().getColumn(displayedColumn+1));
 	}
 	
 	public Records exportData()
@@ -129,17 +169,21 @@ public class GUITable extends JTable{
 		}
 	}
 
-	public boolean search(String value)
+	public boolean search(String target)
 	{		
 		for (int row = 0; row <= this.getRowCount() - 1; row++) {			 
             for (int col = 0; col <= this.getColumnCount() - 1; col++) {
-            	String temp = this.getValueAt(row, col).toString();
-                if (temp.contains(value)) {
-                	this.scrollRectToVisible(this.getCellRect(row, 0, true));
-                	this.setRowSelectionInterval(row, row);
-                	this.changeSelection(row, col, false, false);
-                	//this.getColumnModel().getColumn(col).setCellRenderer(new HighlightRenderer());
-                	return true;
+            	Object value = this.getValueAt(row, col);
+            	if (value!=null)
+            	{
+            		String temp = value.toString();
+            		if (temp.contains(target)) {
+            			this.scrollRectToVisible(this.getCellRect(row, 0, true));
+            			this.setRowSelectionInterval(row, row);
+            			this.changeSelection(row, col, false, false);
+            			//this.getColumnModel().getColumn(col).setCellRenderer(new HighlightRenderer());
+            			return true;
+            		}
                 }
             }
 		}

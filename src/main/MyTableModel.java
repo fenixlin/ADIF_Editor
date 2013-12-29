@@ -13,31 +13,26 @@ public class MyTableModel extends DefaultTableModel{
 
 	private static final long serialVersionUID = 1L;
 	
-	private LinkedHashSet<String> titles = null;
-	private HashMap<String, String> types = null;
-	private ArrayList<HashMap<String,String>> records = null;
-	private ArrayList<Boolean> isCheckBox = null;	
-	
-	public MyTableModel()
-	{
-		super();
-		titles = new LinkedHashSet<String>();
-		types = new HashMap<String,String>();
-		records = new ArrayList<HashMap<String,String>>();
-		isCheckBox = new ArrayList<Boolean>();
-	}
+	private LinkedHashSet<String> titles = new LinkedHashSet<String>();
+	private HashMap<String, String> types = new HashMap<String,String>();
+	private ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
+	private HashMap<String, UDF> udfs = new HashMap<String, UDF>();
+	private HashMap<String, String> apps = new HashMap<String, String>();
+	private ArrayList<Boolean> isCheckBox = new ArrayList<Boolean>();		
 	
 	public void importData(Records r)
-	{
+	{		
+		// TODO 一定要记得加上下面这行
+		// if (r == null) return;
+		
 		LinkedHashSet<String> newTitles = r.getTitles();
 		HashMap<String, String> newTypes = r.getTypes();
-		ArrayList<HashMap<String,String>> newRecords = r.getRecords();		
+		ArrayList<HashMap<String,String>> newRecords = r.getRecords();	
+		HashMap<String, UDF> newUDFs = r.getUDFs();
+		HashMap<String, String> newAPPs = r.getAPPs();
 
 		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
 		Vector<String> head = new Vector<String>();
-		
-		//一定要记得加上下面这行
-		// if (newTitles == null || newRecord == null) return;
 		
 		for (String s : newTitles)
 		{
@@ -49,11 +44,22 @@ public class MyTableModel extends DefaultTableModel{
 			Entry<String, String> entry = iter.next();
 			types.put(entry.getKey(), entry.getValue());
 		}
+		iter = newAPPs.entrySet().iterator();
+		while (iter.hasNext())
+		{
+			Entry<String, String> entry = iter.next();
+			apps.put(entry.getKey(), entry.getValue());
+		}
+		Iterator<Entry<String, UDF>> iter2 = newUDFs.entrySet().iterator();
+		while (iter2.hasNext())
+		{
+			Entry<String, UDF> entry = iter2.next();
+			udfs.put(entry.getKey(), entry.getValue());
+		}
 		for (HashMap<String,String> record : newRecords)
 		{
 			records.add(record);
 		}
-		
 		for (String s : titles)
 		{
 			head.add(s);
@@ -86,8 +92,8 @@ public class MyTableModel extends DefaultTableModel{
 	}
 	
 	public Records exportData()
-	{		
-		return new Records(titles, types, records);
+	{
+		return new Records(titles, types, records, udfs, apps);
 	}
 	
 	@Override
