@@ -1,6 +1,7 @@
 package main;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -10,6 +11,7 @@ import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 
 import org.apache.poi.ss.usermodel.*;
+import org.mozilla.universalchardet.UniversalDetector;
 import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
@@ -35,9 +37,9 @@ public class FileAnalyzer
 		Records r = null;
 		try
 		{
-			scanner = new Scanner(file);
+			String charset = detectCharset(file);
+			scanner = new Scanner(file, charset);
 			/*boolean isContent;*/
-			
 			LinkedHashSet<String> titleList = new LinkedHashSet<String>();
 			HashMap<String,String> types = new HashMap<String,String>();
 			ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
@@ -45,139 +47,192 @@ public class FileAnalyzer
 			HashMap<String, String> apps = new HashMap<String, String>();
 			//use LinkedHashSet to store titles.
 			//use ArrayList to temporarily store data and make it a row when eor is read
-			
-			if (!scanner.next().startsWith("<"))
+			//If the file is not empty
+			if (scanner.hasNext())
 			{
-				//throw the header out
-				String spec;
-				String body;
-				scanner.useDelimiter("<");
-				scanner.next();
-				do
+				if (!scanner.next().startsWith("<"))
 				{
-					scanner.useDelimiter("[<>\\r\\n]+"); //In case there are no content between tags
-					spec = scanner.next();					
-					scanner.useDelimiter("[<\\r\\n]+");
-					body = scanner.next();
-					if (body.startsWith(">")) body=body.substring(1);
-					if (spec.startsWith("USERDEF"))
+					//Header part
+					String spec;
+					String body;
+					scanner.useDelimiter("<");
+					scanner.next();
+					do
 					{
+						scanner.useDelimiter("[>\\r\\n]+"); //In case there are no content between tags
+						spec = scanner.next();
+						spec = spec.substring(spec.indexOf('<')+1);
+						int length = -1;
+						
 						Scanner titleScanner = new Scanner(spec);
 						titleScanner.useDelimiter(":");
-						String head = titleScanner.next();
-						int fieldID = Integer.parseInt(head.substring(7, head.length()));
-						//length is not used here
-						titleScanner.nextInt();						
-						//Data Types and Data Type Indicators are case insensitive.
-						String type = titleScanner.next().toUpperCase();
-						titleScanner.close();
-						
-						Scanner bodyScanner = new Scanner(body);
-						bodyScanner.useDelimiter("[{},]+");
-						//ADIF Field Names are case-insensitive.
-						String fieldName = bodyScanner.next().toUpperCase();						
-						ArrayList<String> enums = new ArrayList<String>();
-						String range = null;
-						if (bodyScanner.hasNext())
+						titleScanner.next();
+						//+1 for '>'
+						if (titleScanner.hasNextInt()) 
 						{
-							String s = bodyScanner.next();
-							if (s.matches("\\d+:\\d+"))
-							{
-								range = s;								
-							}
-							else
-							{
-								do
-								{
-									enums.add(s);
-									if (bodyScanner.hasNext()) s = bodyScanner.next();
-									else break;									
-								}while (true);								
-							}
+							length = titleScanner.nextInt()+1;
+							titleScanner.close();
 						}
-						bodyScanner.close();
+						else if (spec.equalsIgnoreCase("eoh"))
+						{
+							titleScanner.close();
+							break;
+						}
+						else
+						{
+							titleScanner.close();
+							throw new Exception();
+						}
 						
-						udfs.put(fieldName, new UDF(fieldID, type, enums, range));						
-					}
-				}while (!spec.equalsIgnoreCase("eoh"));
-			}
-			else
-			{
-				scanner.reset();
-			}
-			
-			scanner.useDelimiter("[<>\\r\\n]+");
-			
-			HashMap<String,String> record = new HashMap<String,String>();
-			
-			int length = -1;
-			String type = null;
-
-			while (scanner.hasNext())
-			{				
-				String rawTitle = scanner.next();
-				Scanner titleScanner = new Scanner(rawTitle);
-				titleScanner.useDelimiter(":");
-				
-				//ADIF Field Names are case-insensitive.
-				String title = titleScanner.next().toUpperCase();
-				
-				length = -1;
-				if (titleScanner.hasNextInt()) length = titleScanner.nextInt();
-				type = null;
-				//Data Types and Data Type Indicators are case insensitive.
-				if (titleScanner.hasNext()) type = titleScanner.next().toUpperCase();
-				titleScanner.close();
-				
-				if (title.equals("EOR"))
-				{
-					records.add(record);
-					record = new HashMap<String,String>();
-				}
+						StringBuffer buf = new StringBuffer();
+						scanner.useDelimiter("[<\\r\\n]+");
+						buf.append(scanner.next());
+						while (buf.toString().length() < length)
+						{
+							//读fixed Length
+							buf.append(scanner.findInLine("[<]+"));
+							if (buf.toString().length() >= length) break;
+							buf.append(scanner.next());
+						}
+						body = buf.toString().substring(1);
+						//if (body.startsWith(">")) body=body.substring(1);
+						
+						if (spec.startsWith("USERDEF"))
+						{
+							Scanner udfTitleScanner = new Scanner(spec);
+							udfTitleScanner.useDelimiter(":");
+							String head = udfTitleScanner.next();
+							int fieldID = Integer.parseInt(head.substring(7, head.length()));
+							//length is not used here
+							udfTitleScanner.nextInt();	
+							//Data Types and Data Type Indicators are case insensitive.
+							String type = udfTitleScanner.next().toUpperCase();
+							udfTitleScanner.close();
+							
+							Scanner bodyScanner = new Scanner(body);
+							bodyScanner.useDelimiter("[{},]+");
+							//ADIF Field Names are case-insensitive.
+							String fieldName = bodyScanner.next().toUpperCase();						
+							ArrayList<String> enums = new ArrayList<String>();
+							String range = null;
+							if (bodyScanner.hasNext())
+							{
+								String s = bodyScanner.next();
+								if (s.matches("\\d+:\\d+"))
+								{
+									range = s;								
+								}
+								else
+								{
+									do
+									{
+										enums.add(s);
+										if (bodyScanner.hasNext()) s = bodyScanner.next();
+										else break;									
+									}while (true);								
+								}
+							}
+							bodyScanner.close();
+							
+							udfs.put(fieldName, new UDF(fieldID, type, enums, range));						
+						}
+					}while (!spec.equalsIgnoreCase("eoh"));
+				}				
 				else
 				{
-					if (title.startsWith("APP_"))
+					scanner.reset();
+				}
+
+				HashMap<String,String> record = new HashMap<String,String>();
+
+				int length = -1;
+				String type = null;
+				scanner.useDelimiter("[>\\r\\n]+");
+
+				while (scanner.hasNext())
+				{				
+					String spec = scanner.next();
+					spec = spec.substring(spec.indexOf('<')+1);
+					
+					Scanner titleScanner = new Scanner(spec);
+					titleScanner.useDelimiter(":");					
+					//ADIF Field Names are case-insensitive.
+					String title = titleScanner.next().toUpperCase();
+					if (titleScanner.hasNextInt())
 					{
-						String programID = title.substring(4, title.indexOf('_', 4));
-						title = title.substring(title.indexOf('_', 4)+1, title.length());
-						apps.put(title, programID);
-					}
-					if (!titleList.contains(title))
-					{
-						titleList.add(title);
-						if (!types.containsKey(title))
+						length = titleScanner.nextInt()+1;
+						type = null;
+						//Data Types and Data Type Indicators are case insensitive.
+						if (titleScanner.hasNext()) type = titleScanner.next().toUpperCase();
+						titleScanner.close();
+						
+						if (title.startsWith("APP_"))
 						{
-							if (type == null)
+							String programID = title.substring(4, title.indexOf('_', 4));
+							title = title.substring(title.indexOf('_', 4)+1, title.length());
+							apps.put(title, programID);
+						}
+						if (!titleList.contains(title))
+						{
+							titleList.add(title);
+							if (!types.containsKey(title))
 							{
-								ConfigLoader configLoader = new ConfigLoader();
-								type = configLoader.getQSOType(title);
-								if (type == null) types.put(title, "S");
-								else types.put(title, type);
-							}
-							else
-							{
-								types.put(title, type);
+								if (type == null)
+								{
+									ConfigLoader configLoader = new ConfigLoader();
+									type = configLoader.getQSOType(title);
+									if (type == null) types.put(title, "S");
+									else types.put(title, type);
+								}
+								else
+								{
+									types.put(title, type);
+								}
 							}
 						}
+						//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
+						
+						StringBuffer buf = new StringBuffer();
+						scanner.useDelimiter("[<\\r\\n]+");
+						buf.append(scanner.next());
+						while (buf.toString().length() < length)
+						{
+							//读fixed Length
+							buf.append(scanner.findInLine("[<]+"));
+							if (buf.toString().length() >= length) break;
+							buf.append(scanner.next());
+						}
+						String body = buf.toString().substring(1);
+						
+												
+						//if (body.startsWith(">")) body = body.substring(1);
+											
+						// CUT but not CHECK??????????????????????????????
+						//if (length>0) value=value.substring(0, length);
+						
+						/*
+						DataChecker checker = new DataChecker();
+						if (!checker.typeCheck(value, type) || !checker.lengthCheck(value, length)) throw(new Exception());
+						*/
+						//System.out.println(value+"-"+value.getBytes("GBK").length);
+						record.put(title, body);
 					}
-					//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
-					scanner.useDelimiter("[<\\r\\n]+");
-					String value = scanner.next();
-					if (value.startsWith(">")) value = value.substring(1);
+					else if (title.equals("EOR"))
+					{
+						records.add(record);
+						record = new HashMap<String,String>();
+					}
+					else
+					{
+						titleScanner.close();
+						throw new Exception();
+					}
 										
-					// CUT but not CHECK??????????????????????????????
-					if (length>0) value=value.substring(0, length);
-					
-					/*
-					DataChecker checker = new DataChecker();
-					if (!checker.typeCheck(value, type) || !checker.lengthCheck(value, length)) throw(new Exception());
-					*/
-					
-					record.put(title, value);
+					scanner.useDelimiter("[>\\r\\n]+");
 				}
-				scanner.useDelimiter("[<>\\r\\n]+");
-			}			
-			r = new Records(titleList, types, records, udfs, apps);
+						
+				r = new Records(titleList, types, records, udfs, apps);
+			}
 		}
 		catch (Exception e)
 		{
@@ -390,5 +445,28 @@ public class FileAnalyzer
 		}
 		
 		return r;
+	}
+
+	private String detectCharset(File file)
+	{
+		byte[] buf = new byte[4096];
+		try {
+			FileInputStream fis = new FileInputStream(file);
+			UniversalDetector detector = new UniversalDetector(null);
+			int nread;
+		    while ((nread = fis.read(buf)) > 0 && !detector.isDone()) {
+		      detector.handleData(buf, 0, nread);
+		    }
+		    detector.dataEnd();
+		    String encoding = detector.getDetectedCharset();
+		    //If no charset is detected
+		    if (encoding==null) encoding = "UTF-8";
+		    fis.close();
+		    return encoding;		    
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		return "UTF-8";
 	}
 }

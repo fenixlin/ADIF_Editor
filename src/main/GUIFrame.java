@@ -106,7 +106,7 @@ public class GUIFrame {
 				try
 				{
 					int col = Integer.parseInt(target)-1;
-					table.hideColumn(table.displayedColumnNumber(col));
+					table.hideColumn(col);
 				}
 				catch (Exception e)
 				{
@@ -234,8 +234,9 @@ public class GUIFrame {
 			{
 				return false;
 			}
+			return true;
 		}
-		return true;
+		return false;
 	}
 	
 	private class ADIF3FileFilter extends FileFilter

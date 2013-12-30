@@ -7,6 +7,9 @@ import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.LinkedHashSet;
+import java.util.LinkedList;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
@@ -15,6 +18,10 @@ import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.JTextField;
+import javax.swing.event.ChangeEvent;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.TableColumnModelEvent;
+import javax.swing.event.TableColumnModelListener;
 import javax.swing.table.*;
 
 import main.ConfigLoader;
@@ -24,8 +31,14 @@ public class GUITable extends JTable{
 	private static final long serialVersionUID = 1L;
 	private int bottomLine = 0;
 	private int popupColumn;
-	private ArrayList<Integer> hiddenColumnNumber = new ArrayList<Integer>();
-	private ArrayList<TableColumn> hiddenColumn = new ArrayList<TableColumn>();
+	
+	private class HiddenColumn
+	{
+		int num;
+		TableColumn col;
+		public HiddenColumn(int x, TableColumn y) { num=x; col=y; }
+	}
+	private LinkedList<HiddenColumn> hiddenColumn = new LinkedList<HiddenColumn>();
 	
 	public GUITable(MyTableModel t){
 		super(t);
@@ -96,55 +109,71 @@ public class GUITable extends JTable{
 	}
 	
 	public void hideColumn(int col)
-	{
-		hiddenColumnNumber.add(col);
+	{		
 		TableColumn tc = this.getColumnModel().getColumn(col);
-		hiddenColumn.add(tc);
+		hiddenColumn.addFirst(new HiddenColumn(col, tc));
 		this.removeColumn(tc);
 		//this.getColumnModel().getColumn(col).setMinWidth(0);
     	//this.getColumnModel().getColumn(col).setMaxWidth(0);
 	}
 	
+	/*
 	public int displayedColumnNumber(int col)
 	{
 		int answer = col;
-		for (Integer x: hiddenColumnNumber)
+		for (HiddenColumn x: hiddenColumn)
 		{
-			if (x<col) answer++;
+			if (x.num<col) answer++;
 		}
 		return answer;
 	}
-
+*/
+	
 	public void showAllHiddenColumn(int maxWidth)
 	{
-		for (TableColumn x: hiddenColumn)
+		for (HiddenColumn x: hiddenColumn)
 		{			
-			this.addColumn(x);
+			this.addColumn(x.col);
+			this.moveColumn(this.getColumnCount() - 1, x.num);
 		}
-		hiddenColumnNumber.clear();
 		hiddenColumn.clear();
 	}
 	
 	public void importData(Records r)
 	{
-		int displayedColumn = getColumnCount();
-		for (TableColumn x: hiddenColumn)
-		{			
-			this.addColumn(x);
-		}
-		
 		MyTableModel tableModel = (MyTableModel)this.getModel();
 		tableModel.importData(r);
 		setDropList();
 		
-		for (int i=0; i<hiddenColumn.size(); i++)
-			this.removeColumn(this.getColumnModel().getColumn(displayedColumn+1));
+		//redo the hiding
+		Collections.reverse(hiddenColumn);
+		for (HiddenColumn x: hiddenColumn)
+		{			
+			this.removeColumn(this.getColumnModel().getColumn(x.num));
+		}
+		Collections.reverse(hiddenColumn);
 	}
 	
 	public Records exportData()
 	{
+		for (HiddenColumn x: hiddenColumn)
+		{			
+			this.addColumn(x.col);
+			this.moveColumn(this.getColumnCount() - 1, x.num);
+		}
+		LinkedHashSet<String> printTitles = new LinkedHashSet<String>();
+		TableColumnModel tcm = this.getColumnModel();
+		for (int i=0; i<this.getColumnCount(); i++)
+		{
+			printTitles.add(tcm.getColumn(i).getHeaderValue().toString());
+		}		
+		for (HiddenColumn x: hiddenColumn)
+		{			
+			this.removeColumn(x.col);
+		}		
+		
 		MyTableModel tableModel = (MyTableModel)this.getModel();
-		return tableModel.exportData();
+		return tableModel.exportData(printTitles);
 	}
 	
 	private class MyCellEditor extends DefaultCellEditor

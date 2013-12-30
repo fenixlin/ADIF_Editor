@@ -4,7 +4,6 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
-import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -69,17 +68,18 @@ public class FileExporter {
 		fout.write("\n<EOH>\n\n");
 					
 		ArrayList<HashMap<String,String>> records = r.getRecords();
+		LinkedHashSet<String> titles = r.getTitles();
 		HashMap<String, String> apps = r.getAPPs();
 		for (HashMap<String,String> record : records)
 		{
 			if (record.size()==0) continue;
-			Iterator<Entry<String, String>> iter = record.entrySet().iterator();
-			while (iter.hasNext())
+			for (String title: titles)
 			{
-				Entry<String, String> data = iter.next();
-				String dataSpec = data.getKey();
+				String dataSpec = title;
+				String value = record.get(title);
+				if (value==null) continue;
 				if (apps.containsKey(dataSpec)) dataSpec = "APP_"+apps.get(dataSpec)+"_"+dataSpec;
-				fout.write("<"+dataSpec+":"+data.getValue().length()+">"+data.getValue()+"\n");
+				fout.write("<"+dataSpec+":"+value.length()+">"+value+"\n");
 			}
 			fout.write("<EOR>\n\n");
 		}
@@ -133,17 +133,17 @@ public class FileExporter {
 				
 		fout.write(tab+"<RECORDS>\n\n");
 		ArrayList<HashMap<String,String>> records = r.getRecords();
+		LinkedHashSet<String> titles = r.getTitles();
 		HashMap<String,String> types = r.getTypes();
 		HashMap<String,String> apps = r.getAPPs();
 		for (HashMap<String,String> record : records)
 		{
 			if (record.size()==0) continue;
-			fout.write(tab+tab+"<RECORD>\n\n");
-			Iterator<Entry<String, String>> iter = record.entrySet().iterator();
-			while (iter.hasNext())
+			fout.write(tab+tab+"<RECORD>\n\n");			
+			for (String title : titles)
 			{
-				Entry<String, String> data = iter.next();
-				String title = data.getKey();
+				String value = record.get(title);
+				if (value==null) continue;
 				String elemname = null;
 				String fieldname = null;
 				String programid = null;
@@ -168,7 +168,7 @@ public class FileExporter {
 				if (programid!=null) fout.write(" PROGRAMID=\""+programid+"\"");
 				if (fieldname!=null) fout.write(" FIELDNAME=\""+fieldname+"\"");
 				if (type!=null) fout.write(" TYPE=\""+type+"\"");
-				fout.write(">"+data.getValue()+"</"+elemname+">\n");
+				fout.write(">"+value+"</"+elemname+">\n");
 			}
 			fout.write("\n"+tab+tab+"</RECORD>\n");
 		}
@@ -183,14 +183,14 @@ public class FileExporter {
 		Workbook workbook = new XSSFWorkbook();
 		FileOutputStream  fout = new FileOutputStream(file);
 		Sheet sheet = workbook.createSheet("ADIF Data");
-		LinkedHashSet<String> titleList = r.getTitles();
+		LinkedHashSet<String> titles = r.getTitles();
 		ArrayList<HashMap<String,String>> records = r.getRecords();
 		
 		for (int i=0; i<=records.size(); i++) sheet.createRow(i);
 		
 		int i=0;
 		Row row = sheet.getRow(0);
-		for (String title: titleList)
+		for (String title: titles)
 		{
 			Cell cell = row.getCell(i, Row.CREATE_NULL_AS_BLANK);
 			cell.setCellType(Cell.CELL_TYPE_STRING);

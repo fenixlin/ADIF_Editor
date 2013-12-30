@@ -24,7 +24,23 @@ public class MainController {
 		
 		//user-defined field not done yet!!!
 		//这里说一下，我们显示的表头的东西应该是FIELDNAME
-		//然后user-defined的东西可以在文件头部声明，可选择附带范围或枚举类型(人家只要枚举啦)		
+		//然后user-defined的东西可以在文件头部声明，可选择附带范围或枚举类型(人家只要枚举啦)
+		//user-defined还要能够加入什么的吧，还有枚举类型呢
+		
+		//sort应该是基于QSO_DATE和TIME_ON
+		//弄一个TextArea的help?
+		
+		//要能够读"ADI"
+		//13M的文件
+		
+		//check随便啦
+		//CNTY什么的也要弄进去呢TAT
+		//不用config文件，移动到什么位置按这个顺序存就好了
+		
+		//进度条
+		
+		//根据同一行别的数据动态决定枚举列表的项目？监听鼠标点击来添加枚举列表？
+		//不区分大小写的enumeration?
 
 		try
 		{

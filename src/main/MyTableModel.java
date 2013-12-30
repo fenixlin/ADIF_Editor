@@ -91,9 +91,9 @@ public class MyTableModel extends DefaultTableModel{
 		super.setDataVector(data, head);
 	}
 	
-	public Records exportData()
+	public Records exportData(LinkedHashSet<String> printTitles)
 	{
-		return new Records(titles, types, records, udfs, apps);
+		return new Records(printTitles, types, records, udfs, apps);
 	}
 	
 	@Override
