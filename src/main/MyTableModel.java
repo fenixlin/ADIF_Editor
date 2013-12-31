@@ -113,4 +113,9 @@ public class MyTableModel extends DefaultTableModel{
 		}
 		super.addRow(v);
 	}
+	
+	public void removeColumn(String s)
+	{
+		titles.remove(s);
+	}
 }

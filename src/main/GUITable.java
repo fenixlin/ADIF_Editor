@@ -90,8 +90,15 @@ public class GUITable extends JTable{
             	GUITable.this.hideColumn(popupColumn);
             }
         });
+		removeItem.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+            	GUITable.this.removeColumn(popupColumn);
+            }
+        });
+		
 		popupMenu.add(hideItem);
-		popupMenu.add(removeItem);		
+		popupMenu.add(removeItem);
 		//header.setComponentPopupMenu(popupMenu);
 		header.addMouseListener( new MouseAdapter() {			
 			@Override
@@ -115,6 +122,14 @@ public class GUITable extends JTable{
 		this.removeColumn(tc);
 		//this.getColumnModel().getColumn(col).setMinWidth(0);
     	//this.getColumnModel().getColumn(col).setMaxWidth(0);
+	}
+	
+	public void removeColumn(int col)
+	{
+		TableColumn tc = this.getColumnModel().getColumn(col);
+		this.removeColumn(tc);
+		MyTableModel tm = (MyTableModel)this.getModel();
+		tm.removeColumn(tc.getHeaderValue().toString());
 	}
 	
 	/*

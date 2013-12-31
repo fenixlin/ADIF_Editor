@@ -31,8 +31,8 @@ public class FileExporter {
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd' at 'HH:mm:ss");
 		Calendar c = Calendar.getInstance();
 		fout.write("Generated on "+df.format(c.getTime())+"\n\n");
-		fout.write("<adif_ver:5>3.0.4\n");
-		fout.write("<programid:11>ADIF_Editor\n");
+		fout.write("<ADIF_VER:5>3.0.4\n");
+		fout.write("<PROGRAMID:11>ADIF_Editor\n");
 		HashMap<String, UDF> udfs = r.getUDFs();
 		Iterator<Entry<String, UDF>> udfIter = udfs.entrySet().iterator();
 		int i=0;

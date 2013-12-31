@@ -98,6 +98,21 @@ public class GUIFrame {
 		editMenu = new JMenu("Edit");
 		addColumnMenuItem = new JMenuItem("Add column");
 		removeColumnMenuItem = new JMenuItem("Remove column");
+		removeColumnMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				String target = JOptionPane.showInputDialog(frame, "请输入要隐藏的列号(列号从1开始)");
+				try
+				{
+					int col = Integer.parseInt(target)-1;
+					table.removeColumn(col);
+				}
+				catch (Exception e)
+				{
+					JOptionPane.showMessageDialog(frame, "请输入合法的整数值", "Error", JOptionPane.ERROR_MESSAGE);
+				}
+			}
+		});
 		hideColumnMenuItem = new JMenuItem("Hide column");
 		hideColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)

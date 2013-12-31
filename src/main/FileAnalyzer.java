@@ -61,7 +61,7 @@ public class FileAnalyzer
 					{
 						scanner.useDelimiter("[>\\r\\n]+"); //In case there are no content between tags
 						spec = scanner.next();
-						spec = spec.substring(spec.indexOf('<')+1);
+						spec = spec.substring(spec.lastIndexOf('<')+1);
 						int length = -1;
 						
 						Scanner titleScanner = new Scanner(spec);
@@ -152,7 +152,7 @@ public class FileAnalyzer
 				while (scanner.hasNext())
 				{				
 					String spec = scanner.next();
-					spec = spec.substring(spec.indexOf('<')+1);
+					spec = spec.substring(spec.lastIndexOf('<')+1);
 					
 					Scanner titleScanner = new Scanner(spec);
 					titleScanner.useDelimiter(":");					
