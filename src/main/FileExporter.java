@@ -76,7 +76,7 @@ public class FileExporter {
 			for (String title: titles)
 			{
 				String dataSpec = title;
-				String value = record.get(title);
+				String value = record.get(title).trim();
 				if (value==null) continue;
 				if (apps.containsKey(dataSpec)) dataSpec = "APP_"+apps.get(dataSpec)+"_"+dataSpec;
 				fout.write("<"+dataSpec+":"+value.length()+">"+value+"\n");
@@ -142,7 +142,7 @@ public class FileExporter {
 			fout.write(tab+tab+"<RECORD>\n\n");			
 			for (String title : titles)
 			{
-				String value = record.get(title);
+				String value = record.get(title).trim();
 				if (value==null) continue;
 				String elemname = null;
 				String fieldname = null;

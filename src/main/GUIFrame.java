@@ -1,11 +1,9 @@
 package main;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 
 import javax.swing.*;
 import javax.swing.filechooser.FileFilter;
-import javax.swing.table.TableModel;
 
 import net.coderazzi.filters.gui.*;
 import net.coderazzi.filters.gui.TableFilterHeader.*;
@@ -14,9 +12,12 @@ import java.awt.Color;
 import java.awt.event.*;
 //跨平台起见，swing丑就丑吧TAT!!
 
-public class GUIFrame {
+public class GUIFrame extends JFrame{
 
-	private JFrame frame;
+	private static final long serialVersionUID = 1L;
+
+	private Thread thread;
+	private ProgressBar progressBar;
 	
 	private JMenuBar menuBar;
 	
@@ -43,19 +44,26 @@ public class GUIFrame {
 	
 	private TableFilterHeader filterHeader = null;
 	
+	private Records r;
+	
+	public static void main(String[] args) {
+		ConfigLoader.loadData();
+		new GUIFrame();
+	}
+	
 	public GUIFrame()
 	{
 		//创建初始界面
-		frame = new JFrame();
-		frame.setSize(800,600);
-		frame.setTitle("ADIF Editor v1.0 by lazyowl");
-		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		super();
+		this.setSize(800,600);
+		this.setTitle("ADIF Editor v1.0 by lazyowl");
+		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
 		table = new GUITable(new MyTableModel());	
-		frame.add(new JScrollPane(table));
+		this.add(new JScrollPane(table));
 		
 		menuBar = new JMenuBar();
-		frame.setJMenuBar(menuBar);
+		this.setJMenuBar(menuBar);
 		
 		fileMenu = new JMenu("File");
 		newMenuItem = new JMenuItem("New");
@@ -83,9 +91,7 @@ public class GUIFrame {
 		exportMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				boolean ok = exportFile();
-				if (ok) JOptionPane.showMessageDialog(frame, "导出成功");
-				else JOptionPane.showMessageDialog(frame, "没有找到相应的值", "Error", JOptionPane.ERROR_MESSAGE);
+				exportFile();				
 			}
 		});		
 		exitMenuItem.addActionListener(new ActionListener(){
@@ -97,19 +103,26 @@ public class GUIFrame {
 		
 		editMenu = new JMenu("Edit");
 		addColumnMenuItem = new JMenuItem("Add column");
+		addColumnMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input new field name");
+				if (target!=null) table.addColumn(target);				
+			}
+		});
 		removeColumnMenuItem = new JMenuItem("Remove column");
 		removeColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(frame, "请输入要隐藏的列号(列号从1开始)");
-				try
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "请输入要隐藏的列号(列号从1开始)");				
+				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
 					table.removeColumn(col);
 				}
 				catch (Exception e)
 				{
-					JOptionPane.showMessageDialog(frame, "请输入合法的整数值", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(GUIFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -117,15 +130,15 @@ public class GUIFrame {
 		hideColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(frame, "请输入要隐藏的列号(列号从1开始)");
-				try
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "请输入要隐藏的列号(列号从1开始)");
+				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
 					table.hideColumn(col);
 				}
 				catch (Exception e)
 				{
-					JOptionPane.showMessageDialog(frame, "请输入合法的整数值", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(GUIFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -133,7 +146,7 @@ public class GUIFrame {
 		showAllHiddenColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				table.showAllHiddenColumn(frame.getWidth());
+				table.showAllHiddenColumn(GUIFrame.this.getWidth());
 			}
 		});
 		
@@ -142,11 +155,11 @@ public class GUIFrame {
 		searchMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(frame, "请输入要搜索的值", "搜索", JOptionPane.PLAIN_MESSAGE);
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "Please input the string to search", "Search", JOptionPane.PLAIN_MESSAGE);
 				if (target!=null)
 				{
 					boolean ok = table.search(target);
-					if (!ok) JOptionPane.showMessageDialog(frame, "没有找到相应的值");					
+					if (!ok) JOptionPane.showMessageDialog(GUIFrame.this, "Target not found.");					
 				}
 			}
 		});
@@ -174,7 +187,7 @@ public class GUIFrame {
 		aboutMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				JOptionPane.showMessageDialog(frame, 
+				JOptionPane.showMessageDialog(GUIFrame.this, 
 						"ADIF Editor v1.0 is a simple editor build for ADIF format data.\n"
 						+ "If you have any questions, please contact fenixl@163.com\n"
 						+ "                                                              Author: Lazyowl", 
@@ -203,7 +216,7 @@ public class GUIFrame {
 		helpMenu.add(aboutMenuItem);
 		
 		//Do something for preview		
-		frame.setVisible(true);
+		this.setVisible(true);
 	}	
 	
 	private void importFile()
@@ -215,21 +228,44 @@ public class GUIFrame {
 		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
 		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
 		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		if (jFileChooser.showOpenDialog(frame) == JFileChooser.APPROVE_OPTION)
+		if (jFileChooser.showOpenDialog(this) == JFileChooser.APPROVE_OPTION)
 		{
-			FileAnalyzer fa = new FileAnalyzer();
-			Records r = fa.analyze(jFileChooser.getSelectedFile());
-
-			//设置好table
-			table.importData(r);
+			thread = new Thread(){
+				public void run()
+				{
+					FileAnalyzer fa = new FileAnalyzer();
+					r = fa.analyze(jFileChooser.getSelectedFile());
+				}
+			};
 			
-			//刷新屏幕
-			frame.revalidate();
-			table.requestFocusInWindow(); //有了focus搜索才能显示
+			progressBar = new ProgressBar(this, "Importing file, please wait......");
+			progressBar.setVisible(true);
+			new Thread()
+	        {
+	            public void run()
+	            {
+					try {
+						thread.run();
+						thread.join();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();			
+					}
+					finally {
+						progressBar.dispose();
+					}
+					//设置好table
+					table.importData(r);
+					
+					//刷新屏幕
+					GUIFrame.this.revalidate();
+					table.requestFocusInWindow(); //有了focus搜索才能显示
+	            }
+	        }.start();
 		}
 	}
 	
-	private boolean exportFile()
+	private void exportFile()
 	{
 		jFileChooser = new JFileChooser(new File("."));
 		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
@@ -237,21 +273,46 @@ public class GUIFrame {
 		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
 		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
 		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		if (jFileChooser.showSaveDialog(frame) == JFileChooser.APPROVE_OPTION)
-		{			
-			Records r = table.exportData();
-			FileExporter fe = new FileExporter();
-			try
-			{
-				fe.export(r, jFileChooser.getSelectedFile());
-			}
-			catch (Exception e)
-			{
-				return false;
-			}
-			return true;
+		if (jFileChooser.showSaveDialog(GUIFrame.this) == JFileChooser.APPROVE_OPTION)
+		{
+			thread = new Thread(){
+				public void run()
+				{
+					r = table.exportData();
+					FileExporter fe = new FileExporter();
+					try
+					{
+						fe.export(r, jFileChooser.getSelectedFile());
+					}
+					catch (Exception e)
+					{
+						e.printStackTrace();
+						JOptionPane.showMessageDialog(GUIFrame.this, "File not found.", "Error", JOptionPane.ERROR_MESSAGE);
+					}
+				}
+			};
+			
+			progressBar = new ProgressBar(this, "Exporting file, please wait......");
+			progressBar.setVisible(true);
+			new Thread()
+	        {
+	            public void run()
+	            {
+					try {
+						thread.run();
+						thread.join();
+					} catch (InterruptedException e) {
+						// TODO Auto-generated catch block
+						e.printStackTrace();			
+					}
+					finally {
+						progressBar.dispose();
+					}
+					
+					JOptionPane.showMessageDialog(GUIFrame.this, "Successfully exported.");	
+	            }
+	        }.start();
 		}
-		return false;
 	}
 	
 	private class ADIF3FileFilter extends FileFilter

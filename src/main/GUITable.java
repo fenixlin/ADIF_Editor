@@ -115,6 +115,14 @@ public class GUITable extends JTable{
 		setDropList();
 	}
 	
+	public void addColumn(String x)
+	{
+		//TableColumn tc = new TableColumn(this.getColumnCount());
+		//tc.setHeaderValue(x);
+		MyTableModel tm = (MyTableModel)this.getModel();
+		tm.addColumn(x);
+	}
+	
 	public void hideColumn(int col)
 	{		
 		TableColumn tc = this.getColumnModel().getColumn(col);

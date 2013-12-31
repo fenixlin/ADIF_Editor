@@ -103,6 +103,13 @@ public class MyTableModel extends DefaultTableModel{
 	    return super.getColumnClass(columnIndex);
 	}
 	
+	@Override
+	public void addColumn(Object columnName)
+	{
+		super.addColumn(columnName);
+		isCheckBox.add(new Boolean(false));
+	}
+	
 	public void addRow()
 	{
 		Vector<Object> v = new Vector<Object>();

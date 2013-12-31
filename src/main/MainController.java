@@ -4,7 +4,7 @@ import javax.swing.JOptionPane;
 
 public class MainController {
 	
-	public static void main(String[] args) {
+	//public static void main(String[] args) {
 		///////所有函数描述请遵循这个格式///////
 		
 		// set some configurations before it (i.e. loading enumerations, loading arrange configurations)
@@ -42,18 +42,17 @@ public class MainController {
 		//根据同一行别的数据动态决定枚举列表的项目？监听鼠标点击来添加枚举列表？
 		//不区分大小写的enumeration?
 
-		try
-		{
-			ConfigLoader.loadData();
-		}
-		catch (Exception e)
-		{
+	//	try
+	//	{
+	//		ConfigLoader.loadData();
+	//	}
+	//	catch (Exception e)
+	//	{
 			//弹窗提示
-			JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
-		}
-		new GUIFrame();
+	//		JOptionPane.showMessageDialog(null, e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+	//	}
+	//	new GUIFrame();
 		
 		//configuration的保存
-	}
-
+	//}
 }
