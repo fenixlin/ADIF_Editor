@@ -17,21 +17,21 @@ import org.apache.poi.xssf.usermodel.*;
 
 public class FileExporter {
 
-	public void export(Records r, File file) throws Exception
+	public void export(String version, Records r, File file) throws Exception
 	{
-		if (file.getName().endsWith(".adi")) adiExport(r, file);
+		if (file.getName().endsWith(".adi")) adiExport(version, r, file);
 		else if (file.getName().endsWith(".adx")) adxExport(r, file);
 		else if (file.getName().endsWith(".xlsx")) xlsxExport(r, file);
 	}
 	
-	private void adiExport(Records r, File file) throws Exception
+	private void adiExport(String version, Records r, File file) throws Exception
 	{
 		BufferedWriter fout = new BufferedWriter(new FileWriter(file));
 		
 		SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd' at 'HH:mm:ss");
 		Calendar c = Calendar.getInstance();
 		fout.write("Generated on "+df.format(c.getTime())+"\n\n");
-		fout.write("<ADIF_VER:5>3.0.4\n");
+		fout.write("<ADIF_VER:5>"+version+"\n");
 		fout.write("<PROGRAMID:11>ADIF_Editor\n");
 		HashMap<String, UDF> udfs = r.getUDFs();
 		Iterator<Entry<String, UDF>> udfIter = udfs.entrySet().iterator();

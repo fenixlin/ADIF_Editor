@@ -28,6 +28,7 @@ public class GUIFrame extends JFrame{
 	private JMenuItem exitMenuItem;
 	
 	private JMenu editMenu;
+	private JMenuItem addRowMenuItem;
 	private JMenuItem addColumnMenuItem;
 	private JMenuItem removeColumnMenuItem;
 	private JMenuItem hideColumnMenuItem;
@@ -69,7 +70,7 @@ public class GUIFrame extends JFrame{
 		newMenuItem = new JMenuItem("New");
 		importMenuItem = new JMenuItem("Import & Merge");
 		exportMenuItem = new JMenuItem("Export");
-		exitMenuItem = new JMenuItem("Exit");
+		exitMenuItem = new JMenuItem("Quit");
 		
 		newMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_N, ActionEvent.CTRL_MASK));
 		importMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_I, ActionEvent.CTRL_MASK));
@@ -102,6 +103,13 @@ public class GUIFrame extends JFrame{
 		});
 		
 		editMenu = new JMenu("Edit");
+		addRowMenuItem = new JMenuItem("Add row");
+		addRowMenuItem.addActionListener(new ActionListener(){
+			public void actionPerformed(ActionEvent evt)
+			{
+				table.addRow();			
+			}
+		});
 		addColumnMenuItem = new JMenuItem("Add column");
 		addColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
@@ -114,7 +122,7 @@ public class GUIFrame extends JFrame{
 		removeColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "请输入要隐藏的列号(列号从1开始)");				
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input the column number to remove (starting from 1)");				
 				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
@@ -130,7 +138,7 @@ public class GUIFrame extends JFrame{
 		hideColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "请输入要隐藏的列号(列号从1开始)");
+				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input the column number to hide (starting from 1)");
 				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
@@ -151,7 +159,6 @@ public class GUIFrame extends JFrame{
 		});
 		
 		searchMenuItem = new JMenuItem("Search");
-		searchMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
 		searchMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
@@ -181,6 +188,9 @@ public class GUIFrame extends JFrame{
 				}
 			}
 		});
+		addColumnMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_T, ActionEvent.CTRL_MASK));
+		addRowMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_R, ActionEvent.CTRL_MASK));
+		searchMenuItem.setAccelerator(KeyStroke.getKeyStroke(KeyEvent.VK_F, ActionEvent.CTRL_MASK));
 		
 		helpMenu = new JMenu("Help");
 		aboutMenuItem = new JMenuItem("About");
@@ -205,6 +215,7 @@ public class GUIFrame extends JFrame{
 		fileMenu.addSeparator();
 		fileMenu.add(exitMenuItem);
 		
+		editMenu.add(addRowMenuItem);
 		editMenu.add(addColumnMenuItem);
 		editMenu.add(removeColumnMenuItem);
 		editMenu.add(hideColumnMenuItem);
@@ -225,6 +236,7 @@ public class GUIFrame extends JFrame{
 		jFileChooser = new JFileChooser(new File("."));
 		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
 		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter2());
 		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
 		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
 		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -234,7 +246,18 @@ public class GUIFrame extends JFrame{
 				public void run()
 				{
 					FileAnalyzer fa = new FileAnalyzer();
-					r = fa.analyze(jFileChooser.getSelectedFile());
+					File file = jFileChooser.getSelectedFile();
+					String path = file.getAbsolutePath();
+					Object selectedFileFilter = jFileChooser.getFileFilter();
+					if (selectedFileFilter instanceof ADIF3FileFilter && !path.endsWith(".adi"))
+						file = new File(path+".adi");
+					else if (selectedFileFilter instanceof ADIF2FileFilter && !path.endsWith(".adi"))
+						file = new File(path+".adi");
+					else if (selectedFileFilter instanceof ADIF3FileFilter2 && !path.endsWith(".adx"))
+						file = new File(path+".adx");
+					else if (selectedFileFilter instanceof XlsxFileFilter && !path.endsWith(".xlsx"))
+						file = new File(path+".xlsx");
+					r = fa.analyze(file);					
 				}
 			};
 			
@@ -270,6 +293,7 @@ public class GUIFrame extends JFrame{
 		jFileChooser = new JFileChooser(new File("."));
 		jFileChooser.removeChoosableFileFilter(jFileChooser.getFileFilter());
 		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter());
+		jFileChooser.addChoosableFileFilter(new ADIF3FileFilter2());
 		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
 		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
 		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -280,9 +304,24 @@ public class GUIFrame extends JFrame{
 				{
 					r = table.exportData();
 					FileExporter fe = new FileExporter();
+					File file = jFileChooser.getSelectedFile();
+					String path = file.getAbsolutePath();
+					String version = "3.0.4";
+					Object selectedFileFilter = jFileChooser.getFileFilter();
+					if (selectedFileFilter instanceof ADIF3FileFilter && !path.endsWith(".adi"))
+						file = new File(path+".adi");
+					else if (selectedFileFilter instanceof ADIF2FileFilter)
+					{
+						version = "2.2.7";
+						if (!path.endsWith(".adi")) file = new File(path+".adi");
+					}
+					else if (selectedFileFilter instanceof ADIF3FileFilter2 && !path.endsWith(".adx"))
+						file = new File(path+".adx");
+					else if (selectedFileFilter instanceof XlsxFileFilter && !path.endsWith(".xlsx"))
+						file = new File(path+".xlsx");
 					try
 					{
-						fe.export(r, jFileChooser.getSelectedFile());
+						fe.export(version, r, file);
 					}
 					catch (Exception e)
 					{
@@ -320,13 +359,28 @@ public class GUIFrame extends JFrame{
 		@Override
 		public boolean accept(File f) {
 			if (f.isDirectory()) return true;
-			else if (f.getName().endsWith(".adi") || f.getName().endsWith(".adx")) return true;
+			else if (f.getName().endsWith(".adi")) return true;
 			else return false;
 		}
 
 		@Override
 		public String getDescription() {
-			return "Any ADIF 3.0.4 file(*.adi;*.adx)";
+			return "Any ADIF 3.0.4 file(*.adi)";
+		}
+	}
+	
+	private class ADIF3FileFilter2 extends FileFilter
+	{
+		@Override
+		public boolean accept(File f) {
+			if (f.isDirectory()) return true;
+			else if (f.getName().endsWith(".adx")) return true;
+			else return false;
+		}
+
+		@Override
+		public String getDescription() {
+			return "Any ADIF 3.0.4 file(*.adx)";
 		}
 	}
 	

@@ -128,6 +128,12 @@ public class GUITable extends JTable{
 			})
 		);
 	}
+
+	public void addRow()
+	{
+		MyTableModel tm = (MyTableModel)this.getModel();
+		tm.addRow();
+	}
 	
 	public void addColumn(String x)
 	{
@@ -191,8 +197,8 @@ public class GUITable extends JTable{
 		Collections.reverse(hiddenColumn);
 		
 		//自动增加行
-		tableModel.addRow();
-		bottomLine=getRowCount()-1;
+		//tableModel.addRow();
+		//bottomLine=getRowCount()-1;
 	}
 	
 	public Records exportData()
@@ -229,12 +235,12 @@ public class GUITable extends JTable{
 		{
 			//自动加行XD O_o那怎么删除行
 			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
-			if (row == bottomLine)
-			{
-				bottomLine++;
-				tableModel.addRow();
-				GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
-			}
+			//if (row == bottomLine)
+			//{
+				//bottomLine++;
+				//tableModel.addRow();
+				//GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
+			//}
 			JTextField editor = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 			return editor;
 		}
@@ -252,27 +258,98 @@ public class GUITable extends JTable{
 		{
 			//自动加行XD O_o那怎么删除行
 			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
-			if (row == bottomLine)
-			{
-				bottomLine++;
-				tableModel.addRow();
-				GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
-			}
+			//if (row == bottomLine)
+			//{
+				//bottomLine++;
+				//tableModel.addRow();
+				//GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
+			//}
 			
 			@SuppressWarnings("unchecked")
 			JComboBox<String> editor = (JComboBox<String>) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 			
-			//Case insensitive selecting
-			String valueString = value.toString().toUpperCase();
-			DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
-			for (int i=0; i<model.getSize(); i++)
+			TableColumn tc = GUITable.this.getColumnModel().getColumn(column);	
+			String header = tc.getHeaderValue().toString();
+			//dynamically add items
+			if (header.equalsIgnoreCase("SUBMODE"))
 			{
-				if (model.getElementAt(i).toUpperCase().equals(valueString))
+				String modeValue = tableModel.getRowValue(row, "MODE");
+				if (modeValue!=null)
 				{
-					editor.setSelectedIndex(i);
-					break;
+					DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
+					model.removeAllElements();
+					ConfigLoader cl = new ConfigLoader();
+					ArrayList<String> list = cl.getSubmodeList(modeValue);
+					if (list!=null)
+						for (String x: list)
+						{
+							model.addElement(x);
+						}
 				}
 			}
+			else if (header.equalsIgnoreCase("STATE"))
+			{
+				String modeValue = tableModel.getRowValue(row, "DXCC");
+				if (modeValue!=null)
+				{
+					DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
+					model.removeAllElements();
+					ConfigLoader cl = new ConfigLoader();
+					ArrayList<String> list = cl.getStateList(modeValue);
+					if (list!=null)
+						for (String x: list)
+						{
+							model.addElement(x);
+						}
+				}
+			}
+			else if (header.equalsIgnoreCase("MY_STATE"))
+			{
+				String modeValue = tableModel.getRowValue(row, "MY_DXCC");
+				if (modeValue!=null)
+				{
+					DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
+					model.removeAllElements();
+					ConfigLoader cl = new ConfigLoader();
+					ArrayList<String> list = cl.getStateList(modeValue);
+					if (list!=null)
+						for (String x: list)
+						{
+							model.addElement(x);
+						}
+				}
+			}
+			
+			//Case insensitive selecting			
+			if (value != null)
+			{
+				String valueString = value.toString().toUpperCase();
+				DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
+				boolean found = false;
+				for (int i=1; i<model.getSize(); i++)
+				{
+					if (valueString.equals(model.getElementAt(i).toUpperCase()))
+					{
+						editor.setSelectedIndex(i);
+						found = true;
+						break;
+					}
+				}
+				if (!found)
+				for (int i=1; i<model.getSize(); i++)
+				{
+					if (valueString.startsWith(model.getElementAt(i).toUpperCase()))
+					{
+						editor.setSelectedIndex(i);
+						break;
+					}
+				}
+			}
+			
+			//set editable
+			editor.setEditable(false);					
+			if (header.equals("AWARD_SUBMITTED") || header.equals("AWARD_GRANTED")) editor.setEditable(true);
+			
 			return editor;
 		}		
 	}
@@ -447,7 +524,7 @@ public class GUITable extends JTable{
 		{
 			newValue = table.getModel().getValueAt(row, column);
 
-			if (! newValue.equals(oldValue))
+			if (newValue!=null && !newValue.equals(oldValue))
 			{
 				//  Make a copy of the data in case another cell starts editing
 				//  while processing this change

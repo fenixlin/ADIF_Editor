@@ -50,7 +50,7 @@ public class FileAnalyzer
 			//If the file is not empty
 			if (scanner.hasNext())
 			{
-				if (!scanner.next().startsWith("<"))
+				if (!scanner.hasNext("<.+"))
 				{
 					//Header part
 					String spec;
@@ -59,7 +59,7 @@ public class FileAnalyzer
 					scanner.next();
 					do
 					{
-						scanner.useDelimiter("[>\\r\\n]+"); //In case there are no content between tags
+						scanner.useDelimiter(">"); //In case there are no content between tags
 						spec = scanner.next();
 						spec = spec.substring(spec.lastIndexOf('<')+1);
 						int length = -1;
@@ -85,7 +85,7 @@ public class FileAnalyzer
 						}
 						
 						StringBuffer buf = new StringBuffer();
-						scanner.useDelimiter("[<\\r\\n]+");
+						scanner.useDelimiter("<");
 						buf.append(scanner.next());
 						while (buf.toString().length() < length)
 						{
@@ -140,26 +140,30 @@ public class FileAnalyzer
 						}
 					}while (!spec.equalsIgnoreCase("eoh"));
 				}				
-				else
+				
+				scanner.useDelimiter("[>\\r\\n]+");
+				while (scanner.hasNext() && (!scanner.hasNext(".*<.+")))
 				{
-					scanner.reset();
+					scanner.next();
 				}
-
+				scanner.useDelimiter(">");
+				
 				HashMap<String,String> record = new HashMap<String,String>();
 
 				int length = -1;
 				String type = null;
-				scanner.useDelimiter("[>\\r\\n]+");
-
+				
 				while (scanner.hasNext())
-				{				
+				{
 					String spec = scanner.next();
+					//when file ends (what if problem occur?)
+					if (spec.lastIndexOf('<')<0) break;
 					spec = spec.substring(spec.lastIndexOf('<')+1);
 					
 					Scanner titleScanner = new Scanner(spec);
 					titleScanner.useDelimiter(":");					
 					//ADIF Field Names are case-insensitive.
-					String title = titleScanner.next().toUpperCase();
+					String title = titleScanner.next().toUpperCase();					
 					if (titleScanner.hasNextInt())
 					{
 						length = titleScanner.nextInt()+1;
@@ -195,7 +199,7 @@ public class FileAnalyzer
 						//In case there are nothing between tags, so reset delimiter (the '>' of first tag will be read)
 						
 						StringBuffer buf = new StringBuffer();
-						scanner.useDelimiter("[<\\r\\n]+");
+						scanner.useDelimiter("<");
 						buf.append(scanner.next());
 						while (buf.toString().length() < length)
 						{
@@ -232,7 +236,7 @@ public class FileAnalyzer
 						throw new Exception();
 					}
 										
-					scanner.useDelimiter("[>\\r\\n]+");
+					scanner.useDelimiter(">");
 				}
 						
 				r = new Records(titleList, types, records, udfs, apps);

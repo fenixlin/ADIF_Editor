@@ -144,6 +144,12 @@ public class MyTableModel extends DefaultTableModel{
 		record.put(colName, newData);
 	}
 	
+	public String getRowValue(int row, String title)
+	{
+		HashMap<String, String> record = records.get(row);
+		return record.get(title);
+	}
+	
 	@Override
 	public Class<?> getColumnClass(int columnIndex) {
 	    if (isCheckBox.get(columnIndex))

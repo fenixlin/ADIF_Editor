@@ -43,6 +43,8 @@ public class MainController {
 		
 		//根据同一行别的数据动态决定枚举列表的项目？监听鼠标点击来添加枚举列表？
 		//不区分大小写的enumeration?
+	
+	//AWARD_SUBMITTED AWARD_GRANTED CNTY MY_CNTY MY_STATE STATE SUBMODE
 
 	//	try
 	//	{
