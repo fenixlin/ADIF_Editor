@@ -18,93 +18,85 @@ public class ConfigLoader {
 	private static final String ENUM_FILE = "Enumerations.dat";
 	private static final String QSOFIELD_FILE = "QSOFieldType.dat";
 
-	public static void loadData()
+	public static void loadData() throws Exception
 	{
 		File file = null;
 		Scanner scanner = null;
-		try
+
+		file = new File(ENUM_FILE);
+		if (!file.exists()) throw(new Error());			
+		scanner = new Scanner(file);
+		scanner.useDelimiter("[\\n\\r]+");
+		while (scanner.hasNext())
 		{
-			file = new File(ENUM_FILE);
-			if (!file.exists()) throw(new Error());			
-			scanner = new Scanner(file);
-			scanner.useDelimiter("[\\n\\r]+");
-			while (scanner.hasNext())
-			{
-				int i = scanner.nextInt();
-				String name = scanner.next().toUpperCase();
-				ArrayList<String> list = new ArrayList<String>();
-				//add empty blank
-				list.add("");
-				
-				while (i-->0)
-				{
-					String enumValue = scanner.next();
-					list.add(enumValue);
-				}
-				enumList.put(name, list);
-			}
-			scanner.close();
+			int i = scanner.nextInt();
+			String name = scanner.next().toUpperCase();
+			ArrayList<String> list = new ArrayList<String>();
+			//add empty blank
+			list.add("");
 			
-			file = new File(SUBMODE_FILE);
-			if (!file.exists()) throw(new Error());			
-			scanner = new Scanner(file);
-			scanner.useDelimiter("[\\n\\r]+");
-			while (scanner.hasNext())
+			while (i-->0)
 			{
-				int i = scanner.nextInt();
-				String name = scanner.next().toUpperCase();
-				ArrayList<String> list = new ArrayList<String>();
-				//add empty blank
-				list.add("");
-				
-				while (i-->0)
-				{
-					String enumValue = scanner.next();
-					list.add(enumValue);
-				}
-				submodeList.put(name, list);
+				String enumValue = scanner.next();
+				list.add(enumValue);
 			}
-			scanner.close();
-			
-			file = new File(STATE_FILE);
-			if (!file.exists()) throw(new Error());			
-			scanner = new Scanner(file);
-			scanner.useDelimiter("[\\n\\r]+");
-			while (scanner.hasNext())
-			{
-				int i = scanner.nextInt();
-				String name = scanner.next().toUpperCase();
-				ArrayList<String> list = new ArrayList<String>();
-				//add empty blank
-				list.add("");
-				
-				while (i-->0)
-				{
-					String enumValue = scanner.next();
-					list.add(enumValue);
-				}
-				stateList.put(name, list);
-			}
-			scanner.close();
-			
-			file = new File(QSOFIELD_FILE);
-			if (!file.exists()) throw(new Error());			
-			scanner = new Scanner(file);
-			while (scanner.hasNext())
-			{
-				String fieldName = scanner.next().toUpperCase();
-				String fileType = scanner.next();
-				QSOType.put(fieldName, fileType);
-			}
+			enumList.put(name, list);
 		}
-		catch (Exception e)
+		scanner.close();
+		
+		file = new File(SUBMODE_FILE);
+		if (!file.exists()) throw(new Error());			
+		scanner = new Scanner(file);
+		scanner.useDelimiter("[\\n\\r]+");
+		while (scanner.hasNext())
 		{
-			throw(new Error("Data file open failure!"));
+			int i = scanner.nextInt();
+			String name = scanner.next().toUpperCase();
+			ArrayList<String> list = new ArrayList<String>();
+			//add empty blank
+			list.add("");
+			
+			while (i-->0)
+			{
+				String enumValue = scanner.next();
+				list.add(enumValue);
+			}
+			submodeList.put(name, list);
 		}
-		finally
+		scanner.close();
+		
+		file = new File(STATE_FILE);
+		if (!file.exists()) throw(new Error());			
+		scanner = new Scanner(file);
+		scanner.useDelimiter("[\\n\\r]+");
+		while (scanner.hasNext())
 		{
-			scanner.close();
+			int i = scanner.nextInt();
+			String name = scanner.next().toUpperCase();
+			ArrayList<String> list = new ArrayList<String>();
+			//add empty blank
+			list.add("");
+			
+			while (i-->0)
+			{
+				String enumValue = scanner.next();
+				list.add(enumValue);
+			}
+			stateList.put(name, list);
 		}
+		scanner.close();
+		
+		file = new File(QSOFIELD_FILE);
+		if (!file.exists()) throw(new Error());			
+		scanner = new Scanner(file);
+		while (scanner.hasNext())
+		{
+			String fieldName = scanner.next().toUpperCase();
+			String fileType = scanner.next();
+			QSOType.put(fieldName, fileType);
+		}
+
+		scanner.close();
 		//从文件读取数据
 	}
 	
@@ -131,7 +123,7 @@ public class ConfigLoader {
 			return null;
 		}
 	}
-	
+
 	public ArrayList<String> getStateList(String key)
 	{
 		if (stateList.containsKey(key.toUpperCase()))

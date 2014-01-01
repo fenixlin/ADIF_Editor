@@ -11,7 +11,7 @@ import java.util.Vector;
 
 import javax.swing.table.DefaultTableModel;
 
-public class MyTableModel extends DefaultTableModel{
+public class MainTableModel extends DefaultTableModel{
 
 	private static final long serialVersionUID = 1L;
 	
@@ -28,8 +28,7 @@ public class MyTableModel extends DefaultTableModel{
 	
 	public void importData(Records r)
 	{
-		// TODO 一定要记得加上下面这行
-		// if (r == null) return;
+		if (r == null) return;
 		
 		LinkedHashSet<String> newTitles = r.getTitles();
 		HashMap<String, String> newTypes = r.getTypes();
@@ -141,7 +140,12 @@ public class MyTableModel extends DefaultTableModel{
 	{
 		String colName = this.getColumnName(col);
 		HashMap<String, String> record = records.get(row);
-		record.put(colName, newData);
+		if (isCheckBox.get(col))
+		{
+			if (newData.equals("true")) record.put(colName, "Y");
+			else record.put(colName, "N");
+		}
+		else record.put(colName, newData);
 	}
 	
 	public String getRowValue(int row, String title)
@@ -161,8 +165,16 @@ public class MyTableModel extends DefaultTableModel{
 	public void addColumn(Object columnName)
 	{
 		super.addColumn(columnName);
-		titles.add(columnName.toString());
-		isCheckBox.add(new Boolean(false));
+		String title = columnName.toString(); 
+		titles.add(title);
+		
+		ConfigLoader configLoader = new ConfigLoader();
+		String type = configLoader.getQSOType(title);
+		if (type == null) types.put(title, "S");
+		else types.put(title, type);
+				
+		if (type!=null && type.equals("B")) isCheckBox.add(new Boolean(true));
+		else isCheckBox.add(new Boolean(false));
 	}
 	
 	public void addRow()

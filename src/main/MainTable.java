@@ -22,16 +22,14 @@ import javax.swing.JComboBox;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
-import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 import javax.swing.table.*;
 
 import main.ConfigLoader;
 
-public class GUITable extends JTable{
+public class MainTable extends JTable{
 
 	private static final long serialVersionUID = 1L;
-	private int bottomLine = 0;
 	private int popupColumn;
 	
 	private class HiddenColumn
@@ -42,16 +40,14 @@ public class GUITable extends JTable{
 	}
 	private LinkedList<HiddenColumn> hiddenColumn = new LinkedList<HiddenColumn>();
 	
-	public GUITable(MyTableModel t){
+	public MainTable(MainTableModel t){
 		super(t);
 		
 		this.setAutoResizeMode(JTable.AUTO_RESIZE_ALL_COLUMNS);
 		this.setCellSelectionEnabled(true);
 		this.setRowSelectionAllowed(true); //选择行模式
 		this.setColumnSelectionAllowed(false);
-		this.setDefaultEditor(Object.class, new TextCellEditor()); //改变编辑单元格的模式
 		this.setDefaultRenderer(Object.class, new CustomTableCellRenderer());
-		//this.changeSelection(0, 0, false, false);
 		
 		addMouseListener(new MouseAdapter(){
 			@Override
@@ -63,10 +59,6 @@ public class GUITable extends JTable{
 				}
 			}
 		});
-		
-		//自动增加行
-		//tableModel.addRow();
-		//bottomLine=getRowCount()-1;
 		
 		//将列设置为点击列表头选择
 		final JTableHeader header = getTableHeader();
@@ -89,19 +81,18 @@ public class GUITable extends JTable{
 		hideItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	GUITable.this.hideColumn(popupColumn);
+            	MainTable.this.hideColumn(popupColumn);
             }
         });
 		removeItem.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
-            	GUITable.this.removeColumn(popupColumn);
+            	MainTable.this.removeColumn(popupColumn);
             }
         });
 		
 		popupMenu.add(hideItem);
 		popupMenu.add(removeItem);
-		//header.setComponentPopupMenu(popupMenu);
 		header.addMouseListener( new MouseAdapter() {			
 			@Override
 		    public void mouseReleased(MouseEvent e) {
@@ -112,9 +103,6 @@ public class GUITable extends JTable{
 		        }
 		    }
 		});	
-		
-		//设置DropDownList
-		setDropList();
 				
 		this.addPropertyChangeListener(new TableCellListener(this, new AbstractAction()	{		    
 				private static final long serialVersionUID = 1L;
@@ -122,7 +110,7 @@ public class GUITable extends JTable{
 				public void actionPerformed(ActionEvent e)
 			    {
 			        TableCellListener tcl = (TableCellListener)e.getSource();
-			        MyTableModel tm = (MyTableModel)GUITable.this.getModel();			        
+			        MainTableModel tm = (MainTableModel)MainTable.this.getModel();			        
 			        tm.editData(tcl.getRow(), tcl.getColumn(), tcl.getNewValue().toString());
 			    }
 			})
@@ -131,16 +119,24 @@ public class GUITable extends JTable{
 
 	public void addRow()
 	{
-		MyTableModel tm = (MyTableModel)this.getModel();
+		MainTableModel tm = (MainTableModel)this.getModel();
 		tm.addRow();
 	}
 	
 	public void addColumn(String x)
 	{
-		//TableColumn tc = new TableColumn(this.getColumnCount());
-		//tc.setHeaderValue(x);
-		MyTableModel tm = (MyTableModel)this.getModel();
+		MainTableModel tm = (MainTableModel)this.getModel();
 		tm.addColumn(x);
+		ConfigLoader cl = new ConfigLoader();
+		ArrayList<String> values = cl.getEnumList(x);
+		if (values!=null)
+		{
+			String[] tmp = new String[values.size()];
+			DefaultComboBoxModel<String> model = new DefaultComboBoxModel<String>(values.toArray(tmp));				
+			JComboBox<String> comboBox = new JComboBox<String>(model);
+			TableColumn col = this.getColumnModel().getColumn(this.getColumnCount()-1);
+			col.setCellEditor(new ComboCellEditor(comboBox));
+		}
 	}
 	
 	public void hideColumn(int col)
@@ -148,29 +144,15 @@ public class GUITable extends JTable{
 		TableColumn tc = this.getColumnModel().getColumn(col);
 		hiddenColumn.addFirst(new HiddenColumn(col, tc));
 		this.removeColumn(tc);
-		//this.getColumnModel().getColumn(col).setMinWidth(0);
-    	//this.getColumnModel().getColumn(col).setMaxWidth(0);
 	}
 	
 	public void removeColumn(int col)
 	{
 		TableColumn tc = this.getColumnModel().getColumn(col);
 		this.removeColumn(tc);
-		MyTableModel tm = (MyTableModel)this.getModel();
+		MainTableModel tm = (MainTableModel)this.getModel();
 		tm.removeColumn(tc.getHeaderValue().toString());
 	}
-	
-	/*
-	public int displayedColumnNumber(int col)
-	{
-		int answer = col;
-		for (HiddenColumn x: hiddenColumn)
-		{
-			if (x.num<col) answer++;
-		}
-		return answer;
-	}
-*/
 	
 	public void showAllHiddenColumn(int maxWidth)
 	{
@@ -184,21 +166,20 @@ public class GUITable extends JTable{
 	
 	public void importData(Records r)
 	{
-		MyTableModel tableModel = (MyTableModel)this.getModel();
+		MainTableModel tableModel = (MainTableModel)this.getModel();
 		tableModel.importData(r);
 		setDropList();
 		
 		//redo the hiding
-		Collections.reverse(hiddenColumn);
-		for (HiddenColumn x: hiddenColumn)
-		{			
-			this.removeColumn(this.getColumnModel().getColumn(x.num));
+		if (hiddenColumn.size()>0)
+		{
+			Collections.reverse(hiddenColumn);
+			for (HiddenColumn x: hiddenColumn)
+			{			
+				this.removeColumn(this.getColumnModel().getColumn(x.num));
+			}
+			Collections.reverse(hiddenColumn);
 		}
-		Collections.reverse(hiddenColumn);
-		
-		//自动增加行
-		//tableModel.addRow();
-		//bottomLine=getRowCount()-1;
 	}
 	
 	public Records exportData()
@@ -219,31 +200,8 @@ public class GUITable extends JTable{
 			this.removeColumn(x.col);
 		}		
 		
-		MyTableModel tableModel = (MyTableModel)this.getModel();
+		MainTableModel tableModel = (MainTableModel)this.getModel();
 		return tableModel.exportData(printTitles);
-	}
-	
-	private class TextCellEditor extends DefaultCellEditor
-	{
-		//在选中的时候重新改为选择行……后面可能还会用到吧，感觉和Boolean等等也有关
-		private static final long serialVersionUID = 1L;
-
-		public TextCellEditor() {super(new JTextField());}
-		
-		@Override
-		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
-		{
-			//自动加行XD O_o那怎么删除行
-			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
-			//if (row == bottomLine)
-			//{
-				//bottomLine++;
-				//tableModel.addRow();
-				//GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
-			//}
-			JTextField editor = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
-			return editor;
-		}
 	}
 	
 	private class ComboCellEditor extends DefaultCellEditor
@@ -256,19 +214,12 @@ public class GUITable extends JTable{
 		
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
 		{
-			//自动加行XD O_o那怎么删除行
-			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
-			//if (row == bottomLine)
-			//{
-				//bottomLine++;
-				//tableModel.addRow();
-				//GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
-			//}
-			
+			MainTableModel tableModel = (MainTableModel)MainTable.this.getModel();
+
 			@SuppressWarnings("unchecked")
 			JComboBox<String> editor = (JComboBox<String>) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 			
-			TableColumn tc = GUITable.this.getColumnModel().getColumn(column);	
+			TableColumn tc = MainTable.this.getColumnModel().getColumn(column);	
 			String header = tc.getHeaderValue().toString();
 			//dynamically add items
 			if (header.equalsIgnoreCase("SUBMODE"))
@@ -366,7 +317,6 @@ public class GUITable extends JTable{
             			this.scrollRectToVisible(this.getCellRect(row, 0, true));
             			this.setRowSelectionInterval(row, row);
             			this.changeSelection(row, col, false, false);
-            			//this.getColumnModel().getColumn(col).setCellRenderer(new HighlightRenderer());
             			return true;
             		}
                 }
@@ -383,61 +333,24 @@ public class GUITable extends JTable{
 		public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
 			Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
 
-			if (hasFocus)//(table.isCellSelected(row, column))
+			if (hasFocus)
 			    setBorder(BorderFactory.createMatteBorder(2, 1, 2, 1, Color.BLACK));
 			else setBorder(BorderFactory.createEmptyBorder());
-			/*
-			else if (table.isRowSelected(row))
-			    c.setBackground(Color.pink);
-			else if (!table.isColumnSelected(column)) // seems the table will be refreshed
-			    c.setBackground(Color.white);
-			*/
 			return c;   
 		}	    
 	}
 	
-	/*
-	 * 有空可以把选中的格子的显示方法强调一下如下
-	 * 
-	private class HighlightRenderer extends DefaultTableCellRenderer {
-		 
-        @Override
-        public Component getTableCellRendererComponent(JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
- 
-            // everything as usual
-            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
- 
-            // added behavior
-            if(row == table.getSelectedRow()) {
- 
-                // this will customize that kind of border that will be use to highlight a row
-                setBorder(BorderFactory.createMatteBorder(2, 1, 2, 1, Color.BLACK));
-            }
- 
-            return this;
-        }
-    }
-    */
-	
 	private void setDropList()
 	{
 		TableColumnModel colModel = getColumnModel();
-		ConfigLoader sl = new ConfigLoader();
-		for (int i = 0; i<getColumnCount(); i++)
+		ConfigLoader cl = new ConfigLoader();
+		for (int i = 0; i<colModel.getColumnCount(); i++)
 		{
 			TableColumn col = colModel.getColumn(i);
 			String key = (String)col.getHeaderValue();
-			ArrayList<String> values = sl.getEnumList(key);
+			ArrayList<String> values = cl.getEnumList(key);
 			if (values!=null)
 			{
-				/*
-				JComboBox<String> comboBox = new JComboBox<String>();
-				comboBox.addItem("");//Allow there to be nothing
-				for (String v: values)
-				{
-					comboBox.addItem(v);
-				}
-				*/
 				String[] tmp = new String[values.size()];
 				DefaultComboBoxModel<String> model = new DefaultComboBoxModel<String>(values.toArray(tmp));				
 				JComboBox<String> comboBox = new JComboBox<String>(model);
@@ -446,12 +359,10 @@ public class GUITable extends JTable{
 		}
 	}
 	
-	
-
 	/*
 	 *  This class listens for changes made to the data in the table via the
 	 *  TableCellEditor. When editing is started, the value of the cell is saved
-	 *  When editing is stopped the new value is saved. When the oold and new
+	 *  When editing is stopped the new value is saved. When the old and new
 	 *  values are different, then the provided Action is invoked.
 	 *
 	 *  The source of the Action is a TableCellListener instance.

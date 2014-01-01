@@ -2,19 +2,30 @@ package main;
 
 public class DataChecker {
 
-	public boolean dataCheck(String data, String type, int length)
+	public boolean dataCheck(String data, String type)
 	{
-		if (data.length()!=length) return false;
-		switch(type)
+		if (type!=null)
 		{
-			case "B": return booleanCheck(data); 
-			case "N": return numberCheck(data);
-			case "S": return stringCheck(data);
-			case "I": return true;
-			case "D": return dateCheck(data);
-			case "T": return timeCheck(data);
-			default: return true;
+			try
+			{
+				switch(type)
+				{
+					case "B": return booleanCheck(data); 
+					case "N": return numberCheck(data);
+					case "S": return true;
+					case "I": return true;
+					case "D": return dateCheck(data);
+					case "T": return timeCheck(data);
+					case "L": return locationCheck(data);
+					default: return true;
+				}
+			}
+			catch (Exception e)
+			{
+				return false;
+			}
 		}
+		else return true;
 	}
 	
 	private boolean booleanCheck(String data)
@@ -33,16 +44,6 @@ public class DataChecker {
 		return true;
 	}
 	
-	private boolean stringCheck(String data)
-	{
-		char[] ch = data.toCharArray();
-		for (int i=0; i<ch.length; i++)
-		{
-			if (ch[i]<'\u0020' || ch[i]>'\u007E') return false;
-		}		
-		return true;
-	}
-	
 	private boolean numberCheck(String data)
 	{
 		String tmp;
@@ -55,7 +56,7 @@ public class DataChecker {
 	
 	private boolean dateCheck(String data)
 	{
-		int[] daysInMonth = {31,28,31,30,31,30,31,31,30,31,30,31};
+		int[] daysInMonth = {0,31,28,31,30,31,30,31,31,30,31,30,31};
 		if (data.length() != 8) return false;
 		if (!digitCheck(data)) return false;
 		int year = Integer.parseInt(data.substring(0, 4));
@@ -69,11 +70,32 @@ public class DataChecker {
 	
 	private boolean timeCheck(String data)
 	{
-		if (data.length() != 6) return false;
 		if (!digitCheck(data)) return false;
-		int hour = Integer.parseInt(data.substring(0, 2));
-		int minute = Integer.parseInt(data.substring(2, 4));
-		int second = Integer.parseInt(data.substring(4, 6));
-		return (hour>=0 && hour <=23 && minute>=0 && minute<=60 && second>=0 && second<=60);
+		if (data.length() == 6)
+		{		
+			int hour = Integer.parseInt(data.substring(0, 2));
+			int minute = Integer.parseInt(data.substring(2, 4));
+			int second = Integer.parseInt(data.substring(4, 6));
+			return (hour>=0 && hour <=23 && minute>=0 && minute<=60 && second>=0 && second<=60);
+		}
+		else if (data.length() == 4)
+		{
+			int hour = Integer.parseInt(data.substring(0, 2));
+			int minute = Integer.parseInt(data.substring(2, 4));
+			return (hour>=0 && hour <=23 && minute>=0 && minute<=60);
+		}
+		else return false;
+	}
+	
+	private boolean locationCheck(String data)
+	{
+		if (data.length()!=11) return false;
+		char direction = data.charAt(0);
+		if (direction!='E' && direction!='W' && direction!='N' && direction!='S') return false;
+		int deg = Integer.parseInt(data.substring(1, 4));
+		if (deg<0 || deg>180) return false;
+		double minute = Double.parseDouble(data.substring(5,11));
+		if (minute<0 || minute>=60) return false;
+		return true;
 	}
 }

@@ -10,9 +10,8 @@ import net.coderazzi.filters.gui.TableFilterHeader.*;
 
 import java.awt.Color;
 import java.awt.event.*;
-//跨平台起见，swing丑就丑吧TAT!!
 
-public class GUIFrame extends JFrame{
+public class MainFrame extends JFrame{
 
 	private static final long serialVersionUID = 1L;
 
@@ -41,18 +40,22 @@ public class GUIFrame extends JFrame{
 	
 	private JFileChooser jFileChooser;
 	
-	private GUITable table = null;
+	private MainTable table = null;
 	
 	private TableFilterHeader filterHeader = null;
 	
 	private Records r;
 	
 	public static void main(String[] args) {
-		ConfigLoader.loadData();
-		new GUIFrame();
+		try {
+			ConfigLoader.loadData();
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(null, "Fatal error: fail to load initialization data.", "Error", JOptionPane.ERROR_MESSAGE);
+		}
+		new MainFrame();
 	}
 	
-	public GUIFrame()
+	public MainFrame()
 	{
 		//创建初始界面
 		super();
@@ -60,7 +63,7 @@ public class GUIFrame extends JFrame{
 		this.setTitle("ADIF Editor v1.0 by lazyowl");
 		this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		
-		table = new GUITable(new MyTableModel());	
+		table = new MainTable(new MainTableModel());	
 		this.add(new JScrollPane(table));
 		
 		menuBar = new JMenuBar();
@@ -80,7 +83,7 @@ public class GUIFrame extends JFrame{
 		newMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				table.setModel(new MyTableModel());
+				table.setModel(new MainTableModel());
 			}
 		});		
 		importMenuItem.addActionListener(new ActionListener(){
@@ -114,7 +117,7 @@ public class GUIFrame extends JFrame{
 		addColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input new field name");
+				String target = JOptionPane.showInputDialog(MainFrame.this, "Input new field name");
 				if (target!=null) table.addColumn(target);				
 			}
 		});
@@ -122,7 +125,7 @@ public class GUIFrame extends JFrame{
 		removeColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input the column number to remove (starting from 1)");				
+				String target = JOptionPane.showInputDialog(MainFrame.this, "Input the column number to remove (starting from 1)");				
 				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
@@ -130,7 +133,7 @@ public class GUIFrame extends JFrame{
 				}
 				catch (Exception e)
 				{
-					JOptionPane.showMessageDialog(GUIFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(MainFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -138,7 +141,7 @@ public class GUIFrame extends JFrame{
 		hideColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "Input the column number to hide (starting from 1)");
+				String target = JOptionPane.showInputDialog(MainFrame.this, "Input the column number to hide (starting from 1)");
 				if (target!=null) try
 				{
 					int col = Integer.parseInt(target)-1;
@@ -146,7 +149,7 @@ public class GUIFrame extends JFrame{
 				}
 				catch (Exception e)
 				{
-					JOptionPane.showMessageDialog(GUIFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
+					JOptionPane.showMessageDialog(MainFrame.this, "Please input legal integer number.", "Error", JOptionPane.ERROR_MESSAGE);
 				}
 			}
 		});
@@ -154,7 +157,7 @@ public class GUIFrame extends JFrame{
 		showAllHiddenColumnMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				table.showAllHiddenColumn(GUIFrame.this.getWidth());
+				table.showAllHiddenColumn(MainFrame.this.getWidth());
 			}
 		});
 		
@@ -162,11 +165,11 @@ public class GUIFrame extends JFrame{
 		searchMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				String target = JOptionPane.showInputDialog(GUIFrame.this, "Please input the string to search", "Search", JOptionPane.PLAIN_MESSAGE);
+				String target = JOptionPane.showInputDialog(MainFrame.this, "Please input the string to search", "Search", JOptionPane.PLAIN_MESSAGE);
 				if (target!=null)
 				{
 					boolean ok = table.search(target);
-					if (!ok) JOptionPane.showMessageDialog(GUIFrame.this, "Target not found.");					
+					if (!ok) JOptionPane.showMessageDialog(MainFrame.this, "Target not found.");					
 				}
 			}
 		});
@@ -197,7 +200,7 @@ public class GUIFrame extends JFrame{
 		aboutMenuItem.addActionListener(new ActionListener(){
 			public void actionPerformed(ActionEvent evt)
 			{
-				JOptionPane.showMessageDialog(GUIFrame.this, 
+				JOptionPane.showMessageDialog(MainFrame.this, 
 						"ADIF Editor v1.0 is a simple editor build for ADIF format data.\n"
 						+ "If you have any questions, please contact fenixl@163.com\n"
 						+ "                                                              Author: Lazyowl", 
@@ -257,7 +260,11 @@ public class GUIFrame extends JFrame{
 						file = new File(path+".adx");
 					else if (selectedFileFilter instanceof XlsxFileFilter && !path.endsWith(".xlsx"))
 						file = new File(path+".xlsx");
-					r = fa.analyze(file);					
+					try {
+						r = fa.analyze(file);
+					} catch (Exception e) {
+						JOptionPane.showMessageDialog(MainFrame.this, "Import failed: Fatal error detected in your file.", "Error", JOptionPane.ERROR_MESSAGE);
+					}					
 				}
 			};
 			
@@ -271,8 +278,7 @@ public class GUIFrame extends JFrame{
 						thread.run();
 						thread.join();
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();			
+						//e.printStackTrace();			
 					}
 					finally {
 						progressBar.dispose();
@@ -281,7 +287,7 @@ public class GUIFrame extends JFrame{
 					table.importData(r);
 					
 					//刷新屏幕
-					GUIFrame.this.revalidate();
+					MainFrame.this.revalidate();
 					table.requestFocusInWindow(); //有了focus搜索才能显示
 	            }
 	        }.start();
@@ -297,7 +303,7 @@ public class GUIFrame extends JFrame{
 		jFileChooser.addChoosableFileFilter(new ADIF2FileFilter());
 		jFileChooser.addChoosableFileFilter(new XlsxFileFilter());
 		jFileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-		if (jFileChooser.showSaveDialog(GUIFrame.this) == JFileChooser.APPROVE_OPTION)
+		if (jFileChooser.showSaveDialog(MainFrame.this) == JFileChooser.APPROVE_OPTION)
 		{
 			thread = new Thread(){
 				public void run()
@@ -322,11 +328,12 @@ public class GUIFrame extends JFrame{
 					try
 					{
 						fe.export(version, r, file);
+						JOptionPane.showMessageDialog(MainFrame.this, "Successfully exported.");
 					}
 					catch (Exception e)
 					{
-						e.printStackTrace();
-						JOptionPane.showMessageDialog(GUIFrame.this, "File not found.", "Error", JOptionPane.ERROR_MESSAGE);
+						//e.printStackTrace();
+						JOptionPane.showMessageDialog(MainFrame.this, "File not found.", "Error", JOptionPane.ERROR_MESSAGE);
 					}
 				}
 			};
@@ -341,14 +348,11 @@ public class GUIFrame extends JFrame{
 						thread.run();
 						thread.join();
 					} catch (InterruptedException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();			
+						//e.printStackTrace();			
 					}
 					finally {
 						progressBar.dispose();
 					}
-					
-					JOptionPane.showMessageDialog(GUIFrame.this, "Successfully exported.");	
 	            }
 	        }.start();
 		}
@@ -414,20 +418,4 @@ public class GUIFrame extends JFrame{
 		}
 	}
 	
-	/*
-	private class AllFileFilter extends FileFilter
-	{
-		@Override
-		public boolean accept(File f) {
-			if (f.isDirectory()) return true;
-			else if (f.getName().endsWith(".adi") || f.getName().endsWith(".adx") || f.getName().endsWith(".xls") || f.getName().endsWith(".xlsx")) return true;
-			else return false;
-		}
-
-		@Override
-		public String getDescription() {
-			return "Any legal file(*.adi;*.adx;*.xls;*.xlsx)";
-		}
-	}
-	*/
 }
