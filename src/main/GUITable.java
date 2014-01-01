@@ -6,22 +6,24 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
+import javax.swing.AbstractAction;
+import javax.swing.Action;
 import javax.swing.BorderFactory;
 import javax.swing.DefaultCellEditor;
+import javax.swing.DefaultComboBoxModel;
 import javax.swing.JComboBox;
 import javax.swing.JMenuItem;
 import javax.swing.JPopupMenu;
 import javax.swing.JTable;
 import javax.swing.JTextField;
-import javax.swing.event.ChangeEvent;
-import javax.swing.event.ListSelectionEvent;
-import javax.swing.event.TableColumnModelEvent;
-import javax.swing.event.TableColumnModelListener;
+import javax.swing.SwingUtilities;
 import javax.swing.table.*;
 
 import main.ConfigLoader;
@@ -47,7 +49,7 @@ public class GUITable extends JTable{
 		this.setCellSelectionEnabled(true);
 		this.setRowSelectionAllowed(true); //选择行模式
 		this.setColumnSelectionAllowed(false);
-		this.setDefaultEditor(Object.class, new MyCellEditor()); //改变编辑单元格的模式
+		this.setDefaultEditor(Object.class, new TextCellEditor()); //改变编辑单元格的模式
 		this.setDefaultRenderer(Object.class, new CustomTableCellRenderer());
 		//this.changeSelection(0, 0, false, false);
 		
@@ -64,7 +66,7 @@ public class GUITable extends JTable{
 		
 		//自动增加行
 		//tableModel.addRow();
-		bottomLine=getRowCount()-1;
+		//bottomLine=getRowCount()-1;
 		
 		//将列设置为点击列表头选择
 		final JTableHeader header = getTableHeader();
@@ -113,6 +115,18 @@ public class GUITable extends JTable{
 		
 		//设置DropDownList
 		setDropList();
+				
+		this.addPropertyChangeListener(new TableCellListener(this, new AbstractAction()	{		    
+				private static final long serialVersionUID = 1L;
+	
+				public void actionPerformed(ActionEvent e)
+			    {
+			        TableCellListener tcl = (TableCellListener)e.getSource();
+			        MyTableModel tm = (MyTableModel)GUITable.this.getModel();			        
+			        tm.editData(tcl.getRow(), tcl.getColumn(), tcl.getNewValue().toString());
+			    }
+			})
+		);
 	}
 	
 	public void addColumn(String x)
@@ -175,6 +189,10 @@ public class GUITable extends JTable{
 			this.removeColumn(this.getColumnModel().getColumn(x.num));
 		}
 		Collections.reverse(hiddenColumn);
+		
+		//自动增加行
+		tableModel.addRow();
+		bottomLine=getRowCount()-1;
 	}
 	
 	public Records exportData()
@@ -199,12 +217,12 @@ public class GUITable extends JTable{
 		return tableModel.exportData(printTitles);
 	}
 	
-	private class MyCellEditor extends DefaultCellEditor
+	private class TextCellEditor extends DefaultCellEditor
 	{
 		//在选中的时候重新改为选择行……后面可能还会用到吧，感觉和Boolean等等也有关
 		private static final long serialVersionUID = 1L;
 
-		public MyCellEditor() {super(new JTextField());}
+		public TextCellEditor() {super(new JTextField());}
 		
 		@Override
 		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
@@ -215,10 +233,48 @@ public class GUITable extends JTable{
 			{
 				bottomLine++;
 				tableModel.addRow();
+				GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
 			}
 			JTextField editor = (JTextField) super.getTableCellEditorComponent(table, value, isSelected, row, column);
 			return editor;
 		}
+	}
+	
+	private class ComboCellEditor extends DefaultCellEditor
+	{
+		private static final long serialVersionUID = 1L;
+
+		public ComboCellEditor(JComboBox<String> comboBox) {
+			super(comboBox);
+		}
+		
+		public Component getTableCellEditorComponent(JTable table, Object value, boolean isSelected, int row, int column) 
+		{
+			//自动加行XD O_o那怎么删除行
+			MyTableModel tableModel = (MyTableModel)GUITable.this.getModel();
+			if (row == bottomLine)
+			{
+				bottomLine++;
+				tableModel.addRow();
+				GUITable.this.scrollRectToVisible(GUITable.this.getCellRect(bottomLine, 0, true));
+			}
+			
+			@SuppressWarnings("unchecked")
+			JComboBox<String> editor = (JComboBox<String>) super.getTableCellEditorComponent(table, value, isSelected, row, column);
+			
+			//Case insensitive selecting
+			String valueString = value.toString().toUpperCase();
+			DefaultComboBoxModel<String> model = (DefaultComboBoxModel<String>)editor.getModel();
+			for (int i=0; i<model.getSize(); i++)
+			{
+				if (model.getElementAt(i).toUpperCase().equals(valueString))
+				{
+					editor.setSelectedIndex(i);
+					break;
+				}
+			}
+			return editor;
+		}		
 	}
 
 	public boolean search(String target)
@@ -297,13 +353,113 @@ public class GUITable extends JTable{
 			ArrayList<String> values = sl.getEnumList(key);
 			if (values!=null)
 			{
+				/*
 				JComboBox<String> comboBox = new JComboBox<String>();
 				comboBox.addItem("");//Allow there to be nothing
 				for (String v: values)
 				{
 					comboBox.addItem(v);
 				}
-				col.setCellEditor(new DefaultCellEditor(comboBox));
+				*/
+				String[] tmp = new String[values.size()];
+				DefaultComboBoxModel<String> model = new DefaultComboBoxModel<String>(values.toArray(tmp));				
+				JComboBox<String> comboBox = new JComboBox<String>(model);
+				col.setCellEditor(new ComboCellEditor(comboBox));
+			}
+		}
+	}
+	
+	
+
+	/*
+	 *  This class listens for changes made to the data in the table via the
+	 *  TableCellEditor. When editing is started, the value of the cell is saved
+	 *  When editing is stopped the new value is saved. When the oold and new
+	 *  values are different, then the provided Action is invoked.
+	 *
+	 *  The source of the Action is a TableCellListener instance.
+	 *  
+	 *  Source : http://tips4java.wordpress.com/2009/06/07/table-cell-listener/
+	 */
+	private class TableCellListener implements PropertyChangeListener, Runnable
+	{
+		private JTable table;
+		private Action action;
+
+		private int row;
+		private int column;
+		private Object oldValue;
+		private Object newValue;
+
+		public TableCellListener(JTable table, Action action)
+		{
+			this.table = table;
+			this.action = action;
+		}
+
+		private TableCellListener(JTable table, int row, int column, Object oldValue, Object newValue)
+		{
+			this.table = table;
+			this.row = row;
+			this.column = column;
+			this.oldValue = oldValue;
+			this.newValue = newValue;
+		}
+
+		public int getColumn() {return column;}
+		public Object getNewValue() {return newValue;}
+		public Object getOldValue() {return oldValue;}
+		public int getRow() {return row;}
+		public JTable getTable() {return table;}
+
+		@Override
+		public void propertyChange(PropertyChangeEvent e)
+		{
+			if ("tableCellEditor".equals(e.getPropertyName()))
+			{
+				if (table.isEditing())
+					processEditingStarted();
+				else
+					processEditingStopped();
+			}
+		}
+
+		private void processEditingStarted()
+		{
+			//  The invokeLater is necessary because the editing row and editing
+			//  column of the table have not been set when the "tableCellEditor"
+			//  PropertyChangeEvent is fired.
+			//  This results in the "run" method being invoked
+
+			SwingUtilities.invokeLater( this );
+		}
+		
+		@Override
+		public void run()
+		{			
+			row = table.convertRowIndexToModel( table.getEditingRow() );
+			column = table.convertColumnIndexToModel( table.getEditingColumn() );
+			oldValue = table.getModel().getValueAt(row, column);
+			newValue = null;
+		}
+
+		private void processEditingStopped()
+		{
+			newValue = table.getModel().getValueAt(row, column);
+
+			if (! newValue.equals(oldValue))
+			{
+				//  Make a copy of the data in case another cell starts editing
+				//  while processing this change
+
+				TableCellListener tcl = new TableCellListener(
+					getTable(), getRow(), getColumn(), getOldValue(), getNewValue());
+
+				ActionEvent event = new ActionEvent(
+					tcl,
+					ActionEvent.ACTION_PERFORMED,
+					"");
+				action.actionPerformed(event);
 			}
 		}
 	}

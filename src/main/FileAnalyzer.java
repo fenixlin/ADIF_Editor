@@ -94,7 +94,9 @@ public class FileAnalyzer
 							if (buf.toString().length() >= length) break;
 							buf.append(scanner.next());
 						}
-						body = buf.toString().substring(1);
+						body = buf.toString();
+						if (body.length()>=length) body=body.substring(1,length);
+						else body = body.substring(1);
 						//if (body.startsWith(">")) body=body.substring(1);
 						
 						if (spec.startsWith("USERDEF"))
@@ -202,7 +204,9 @@ public class FileAnalyzer
 							if (buf.toString().length() >= length) break;
 							buf.append(scanner.next());
 						}
-						String body = buf.toString().substring(1);
+						String body = buf.toString();
+						if (body.length()>=length) body=body.substring(1,length);
+						else body = body.substring(1);
 						
 												
 						//if (body.startsWith(">")) body = body.substring(1);

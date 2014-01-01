@@ -36,7 +36,9 @@ public class MainController {
 		//check随便啦
 		//CNTY什么的也要弄进去呢TAT
 		//不用config文件，移动到什么位置按这个顺序存就好了
-		
+	
+		//writing data to my model!
+	
 		//进度条
 		
 		//根据同一行别的数据动态决定枚举列表的项目？监听鼠标点击来添加枚举列表？

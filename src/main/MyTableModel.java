@@ -1,6 +1,8 @@
 package main;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
@@ -13,15 +15,19 @@ public class MyTableModel extends DefaultTableModel{
 
 	private static final long serialVersionUID = 1L;
 	
+	//NOTICE: title place is not up-to-date when user has dragged columns.
 	private LinkedHashSet<String> titles = new LinkedHashSet<String>();
 	private HashMap<String, String> types = new HashMap<String,String>();
 	private ArrayList<HashMap<String,String>> records = new ArrayList<HashMap<String,String>>();
 	private HashMap<String, UDF> udfs = new HashMap<String, UDF>();
 	private HashMap<String, String> apps = new HashMap<String, String>();
-	private ArrayList<Boolean> isCheckBox = new ArrayList<Boolean>();		
+	private ArrayList<Boolean> isCheckBox = new ArrayList<Boolean>();
+	
+	boolean hasDate = false;
+	boolean hasTime = false;
 	
 	public void importData(Records r)
-	{		
+	{
 		// TODO 一定要记得加上下面这行
 		// if (r == null) return;
 		
@@ -66,6 +72,41 @@ public class MyTableModel extends DefaultTableModel{
 			if (types.get(s).equals("B")) isCheckBox.add(new Boolean(true));
 			else isCheckBox.add(new Boolean(false));
 		}
+		
+		hasDate = false;		
+		hasTime = false;		
+		if (titles.contains("QSO_DATE")) hasDate = true;
+		if (titles.contains("TIME_ON")) hasTime = true;
+		
+		if (hasDate || hasTime)
+			Collections.sort(records, new Comparator<HashMap<String,String>>(){
+
+				@Override
+				public int compare(HashMap<String, String> o1,
+						HashMap<String, String> o2) {
+					
+					int result = 0;
+					if (hasDate)
+					{
+						String s1 = o1.get("QSO_DATE");
+						String s2 = o2.get("QSO_DATE");
+						if (s1==null) s1="";
+						if (s2==null) s2="";
+						result = s1.compareTo(s2);						
+					}
+					if (!hasDate || (result==0 && hasTime))
+					{
+						String s1 = o1.get("TIME_ON");
+						String s2 = o2.get("TIME_ON");
+						if (s1==null) s1="";
+						if (s2==null) s2="";
+						result = s1.compareTo(s2);
+					}
+					
+					return -result;
+				}
+			});		
+		
 		for (int i=0; i<records.size(); i++)
 		{
 			HashMap<String,String> record = records.get(i);
@@ -96,6 +137,13 @@ public class MyTableModel extends DefaultTableModel{
 		return new Records(printTitles, types, records, udfs, apps);
 	}
 	
+	public void editData(int row, int col, String newData)
+	{
+		String colName = this.getColumnName(col);
+		HashMap<String, String> record = records.get(row);
+		record.put(colName, newData);
+	}
+	
 	@Override
 	public Class<?> getColumnClass(int columnIndex) {
 	    if (isCheckBox.get(columnIndex))
@@ -107,11 +155,14 @@ public class MyTableModel extends DefaultTableModel{
 	public void addColumn(Object columnName)
 	{
 		super.addColumn(columnName);
+		titles.add(columnName.toString());
 		isCheckBox.add(new Boolean(false));
 	}
 	
 	public void addRow()
 	{
+		records.add(new HashMap<String, String>());
+		
 		Vector<Object> v = new Vector<Object>();
 		for(int i=0; i<titles.size(); i++)
 		{	

@@ -30,6 +30,9 @@ public class ConfigLoader {
 				int i = scanner.nextInt();
 				String name = scanner.next().toUpperCase();
 				ArrayList<String> list = new ArrayList<String>();
+				//add empty blank
+				list.add("");
+				
 				while (i-->0)
 				{
 					String enumValue = scanner.next();
