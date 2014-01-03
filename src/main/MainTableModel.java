@@ -35,9 +35,7 @@ public class MainTableModel extends DefaultTableModel{
 		ArrayList<HashMap<String,String>> newRecords = r.getRecords();	
 		HashMap<String, UDF> newUDFs = r.getUDFs();
 		HashMap<String, String> newAPPs = r.getAPPs();
-
-		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
-		Vector<String> head = new Vector<String>();
+		isCheckBox = new ArrayList<Boolean>();		
 		
 		for (String s : newTitles)
 		{
@@ -65,18 +63,11 @@ public class MainTableModel extends DefaultTableModel{
 		{
 			records.add(record);
 		}
-		for (String s : titles)
-		{
-			head.add(s);
-			if (types.get(s).equals("B")) isCheckBox.add(new Boolean(true));
-			else isCheckBox.add(new Boolean(false));
-		}
-		
+
 		hasDate = false;		
 		hasTime = false;		
 		if (titles.contains("QSO_DATE")) hasDate = true;
-		if (titles.contains("TIME_ON")) hasTime = true;
-		
+		if (titles.contains("TIME_ON")) hasTime = true;		
 		if (hasDate || hasTime)
 			Collections.sort(records, new Comparator<HashMap<String,String>>(){
 
@@ -106,6 +97,19 @@ public class MainTableModel extends DefaultTableModel{
 				}
 			});		
 		
+		resetData();
+	}
+	
+	private void resetData()
+	{
+		Vector<Vector<Object>> data = new Vector<Vector<Object>>();
+		Vector<String> head = new Vector<String>();
+		for (String s : titles)
+		{
+			head.add(s);
+			if (types.get(s).equals("B")) isCheckBox.add(new Boolean(true));
+			else isCheckBox.add(new Boolean(false));
+		}
 		for (int i=0; i<records.size(); i++)
 		{
 			HashMap<String,String> record = records.get(i);
@@ -193,5 +197,11 @@ public class MainTableModel extends DefaultTableModel{
 	public void removeColumn(String s)
 	{
 		titles.remove(s);
+		resetData();
+	}
+	
+	public void setTitles(LinkedHashSet<String> x)
+	{
+		titles = x;
 	}
 }

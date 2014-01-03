@@ -93,6 +93,7 @@ public class DataChecker {
 		char direction = data.charAt(0);
 		if (direction!='E' && direction!='W' && direction!='N' && direction!='S') return false;
 		int deg = Integer.parseInt(data.substring(1, 4));
+		
 		if (deg<0 || deg>180) return false;
 		double minute = Double.parseDouble(data.substring(5,11));
 		if (minute<0 || minute>=60) return false;

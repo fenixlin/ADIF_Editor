@@ -137,6 +137,8 @@ public class MainTable extends JTable{
 			TableColumn col = this.getColumnModel().getColumn(this.getColumnCount()-1);
 			col.setCellEditor(new ComboCellEditor(comboBox));
 		}
+		
+		redoHideColumn();
 	}
 	
 	public void hideColumn(int col)
@@ -146,12 +148,28 @@ public class MainTable extends JTable{
 		this.removeColumn(tc);
 	}
 	
+	private void redoHideColumn()
+	{
+		if (hiddenColumn.size()>0)
+		{
+			Collections.reverse(hiddenColumn);
+			for (HiddenColumn x: hiddenColumn)
+			{			
+				this.removeColumn(this.getColumnModel().getColumn(x.num));
+			}
+			Collections.reverse(hiddenColumn);
+		}
+	}
+	
 	public void removeColumn(int col)
 	{
 		TableColumn tc = this.getColumnModel().getColumn(col);
 		this.removeColumn(tc);
 		MainTableModel tm = (MainTableModel)this.getModel();
 		tm.removeColumn(tc.getHeaderValue().toString());
+		
+		//redo the hiding as model changed
+		redoHideColumn();
 	}
 	
 	public void showAllHiddenColumn(int maxWidth)
@@ -167,41 +185,40 @@ public class MainTable extends JTable{
 	public void importData(Records r)
 	{
 		MainTableModel tableModel = (MainTableModel)this.getModel();
+		tableModel.setTitles(getCurrentTitles());
 		tableModel.importData(r);
 		setDropList();
 		
-		//redo the hiding
-		if (hiddenColumn.size()>0)
-		{
-			Collections.reverse(hiddenColumn);
-			for (HiddenColumn x: hiddenColumn)
-			{			
-				this.removeColumn(this.getColumnModel().getColumn(x.num));
-			}
-			Collections.reverse(hiddenColumn);
-		}
+		//redo the hiding as model changed
+		redoHideColumn();
 	}
 	
 	public Records exportData()
+	{		
+		MainTableModel tableModel = (MainTableModel)this.getModel();
+		return tableModel.exportData(getCurrentTitles());
+	}
+	
+	private LinkedHashSet<String> getCurrentTitles()
 	{
+		LinkedHashSet<String> result = new LinkedHashSet<String>();
+		
 		for (HiddenColumn x: hiddenColumn)
 		{			
 			this.addColumn(x.col);
 			this.moveColumn(this.getColumnCount() - 1, x.num);
-		}
-		LinkedHashSet<String> printTitles = new LinkedHashSet<String>();
+		}		
 		TableColumnModel tcm = this.getColumnModel();
 		for (int i=0; i<this.getColumnCount(); i++)
 		{
-			printTitles.add(tcm.getColumn(i).getHeaderValue().toString());
+			result.add(tcm.getColumn(i).getHeaderValue().toString());
 		}		
 		for (HiddenColumn x: hiddenColumn)
 		{			
 			this.removeColumn(x.col);
-		}		
+		}
 		
-		MainTableModel tableModel = (MainTableModel)this.getModel();
-		return tableModel.exportData(printTitles);
+		return result;
 	}
 	
 	private class ComboCellEditor extends DefaultCellEditor
